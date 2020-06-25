@@ -6,6 +6,8 @@ import tkinter, serial, time
 from uu import decode, encode
 
 COLOR = 'cornflowerblue'
+COM = ['COM1', 'COM2', 'COM3']
+PORT = COM[1]
 
 
 class Window:
@@ -15,10 +17,10 @@ class Window:
         self.window = tkinter.Tk()
 
     # Функции кнопок
-    def __click(self, code):
+    def __click(self, commande, code):
         try:
             com.write(code)
-            self.screen.config(text='Команда отправлена на ' + self.com.port)
+            self.screen.config(text="Команда '{}' отправлена на {}".format(commande, self.com.port))
         except serial.SerialException:
             self.screen.config(text='Не удается соедениться с ' + self.com.port)
         except (NameError, AttributeError):
@@ -26,127 +28,220 @@ class Window:
 
     # Блок кнопок РЕЖИМ функции
     def mode_ust_click(self):
-        self.__click(b'0x23')
+        text = 'УСТ'
+        self.__click(commande=text, code=b'0x23')
 
     def mode_du_click(self):
-        self.__click(b'0x24')
+        text = 'ДУ'
+        self.__click(commande=text, code=b'0x24')
 
     def mode_20w_click(self):
-        self.__click(b'0x25')
+        text = '20W'
+        self.__click(commande=text, code=b'0x25')
 
     def mode_write_click(self):
-        self.__click(b'0x22')
+        text = 'ЗАПИСЬ'
+        self.__click(commande=text, code=b'0x22')
 
     def mode_read_click(self):
-        self.__click(b'0x21')
+        text = 'ВЫВОД'
+        self.__click(commande=text, code=b'0x21')
 
     # ВЧ блок кнопок функции
     def high_frequency_click(self):
-        self.__click(b'0x26')
+        text = 'ВЧ ЧАСТ'
+        self.__click(commande=text, code=b'0x26')
 
     def high_chm_click(self):
-        self.__click(b'0x27')
+        text = 'ВЧ ЧМ'
+        self.__click(commande=text, code=b'0x27')
 
     def high_dop1_click(self):
         self.screen.config(text='Кнопка не активна')
 
     def high_pow_click(self):
-        self.__click(b'0x29')
+        text = 'МОЩН'
+        self.__click(commande=text, code=b'0x29')
 
     def high_chm_off_click(self):
-        self.__click(b'0x30')
+        text = 'ВЧ ЧМ ОТКЛ'
+        self.__click(commande=text, code=b'0x30')
 
     # НЧ блок кнопок функции
     def low_frequency_click(self):
-        self.__click(b'0x31')
+        text = 'НЧ ЧАСТ'
+        self.__click(commande=text, code=b'0x31')
 
     def low_kg_click(self):
-        self.__click(b'0x32')
+        text = 'НЧ КГ'
+        self.__click(commande=text, code=b'0x32')
 
     def low_dop2_click(self):
-        self.__click(b'0x33')
+        text = 'НЧ ДОП2'
+        self.__click(commande=text, code=b'0x33')
 
     def low_voltage_click(self):
-        self.__click(b'0x34')
+        text = 'НЧ НАПР'
+        self.__click(commande=text, code=b'0x34')
 
     def low_chm_ext_click(self):
-        self.__click(b'0x35')
+        text = 'НЧ ЧМ ВНЕШН'
+        self.__click(commande=text, code=b'0x35')
 
     # Блок стрелок ИЗМЕНЕНИЕ
     def button_up_click(self):
-        self.__click(b'0x16')
+        text = 'ВВЕРХ'
+        self.__click(commande=text, code=b'0x16')
 
     def button_down_click(self):
-        self.__click(b'0x17')
+        text = 'ВНИЗ'
+        self.__click(commande=text, code=b'0x17')
 
     def button_left_click(self):
-        self.__click(b'0x18')
+        text = 'ВЛЕВО'
+        self.__click(commande=text, code=b'0x18')
 
     def button_right_click(self):
-        self.__click(b'0x19')
+        text = 'ВПРАВО'
+        self.__click(commande=text, code=b'0x19')
 
     def disconnect_button_click(self):
-        self.__click(b'0x20')
+        text = 'ОТКЛ'
+        self.__click(commande=text, code=b'0x20')
 
     def input_button_click(self):
-        self.__click(b'0x15')
+        text = 'ВВОД'
+        self.__click(commande=text, code=b'0x15')
 
     # Цифровая клавиатура функции
     def button_1_click(self):
-        self.__click(b'0x01')
+        text = '1'
+        self.__click(commande=text, code=b'0x01')
 
     def button_2_click(self):
-        self.__click(b'0x02')
+        text = '2'
+        self.__click(commande=text, code=b'0x02')
 
     def button_3_click(self):
-        self.__click(b'0x03')
+        text = '3'
+        self.__click(commande=text, code=b'0x03')
 
     def button_4_click(self):
-        self.__click(b'0x04')
+        text = '4'
+        self.__click(commande=text, code=b'0x04')
 
     def button_5_click(self):
-        self.__click(b'0x05')
+        text = '5'
+        self.__click(commande=text, code=b'0x05')
 
     def button_6_click(self):
-        self.__click(b'0x06')
+        text = '6'
+        self.__click(commande=text, code=b'0x06')
 
     def button_7_click(self):
-        self.__click(b'0x07')
+        text = '7'
+        self.__click(commande=text, code=b'0x07')
 
     def button_8_click(self):
-        self.__click(b'0x08')
+        text = '8'
+        self.__click(commande=text, code=b'0x08')
 
     def button_9_click(self):
-        self.__click(b'0x09')
+        text = '9'
+        self.__click(commande=text, code=b'0x09')
 
     def button_0_click(self):
-        self.__click(b'0x00')
+        text = '0'
+        self.__click(commande=text, code=b'0x00')
 
     def button_point_click(self):
-        self.__click(b'0x10')
+        text = '.'
+        self.__click(commande=text, code=b'0x10')
 
     def button_line_click(self):
-        self.__click(b'0x11')
+        text = '-'
+        self.__click(commande=text, code=b'0x11')
 
     # множетели
     def button_MHz_click(self):
-        self.__click(b'0x12')
+        text = 'V/MHz'
+        self.__click(commande=text, code=b'0x12')
 
     def button_kHz_click(self):
-        self.__click(b'0x13')
+        text = 'mV/kHz'
+        self.__click(commande=text, code=b'0x13')
 
     def button_Hz_click(self):
-        self.__click(b'0x14')
+        text = 'uV/Hz'
+        self.__click(commande=text, code=b'0x14')
 
+    def get_frequency_button_click(self):
+        # Функция ввода частоты с клавиатуры
+        frequency = self.get_frequency.get()
+        if len(frequency) == 7:
+            for num in frequency:
+                if num == '1':
+                    self.button_1_click()
+                elif num == '2':
+                    self.button_2_click()
+                elif num == '3':
+                    self.button_3_click()
+                elif num == '4':
+                    self.button_4_click()
+                elif num == '5':
+                    self.button_5_click()
+                elif num == '6':
+                    self.button_6_click()
+                elif num == '7':
+                    self.button_7_click()
+                elif num == '8':
+                    self.button_8_click()
+                elif num == '9':
+                    self.button_9_click()
+                elif num == '0':
+                    self.button_0_click()
+                elif num == '.' or num == ',':
+                    self.button_point_click()
+        elif len(frequency) == 6:
+            for i, num in enumerate(frequency):
+                if i == 3:
+                    self.button_point_click()
+                if num == '1':
+                    self.button_1_click()
+                elif num == '2':
+                    self.button_2_click()
+                elif num == '3':
+                    self.button_3_click()
+                elif num == '4':
+                    self.button_4_click()
+                elif num == '5':
+                    self.button_5_click()
+                elif num == '6':
+                    self.button_6_click()
+                elif num == '7':
+                    self.button_7_click()
+                elif num == '8':
+                    self.button_8_click()
+                elif num == '9':
+                    self.button_9_click()
+                elif num == '0':
+                    self.button_0_click()
+        else:
+            self.screen.config(text='Введите корректную частоту (например 151.825 или 151825)')
+            return
+        self.button_MHz_click()
+        self.screen.config(text='Частота {} установлена на приборе'.format(frequency))
 
     def init_interface(self):
         # Главный экран
-        self.window.title('К2-82 версия пиздец')
+        self.window.title('К2-82 Alpha-test')
         self.window.minsize(width=1330, height=780)
 
         # Фрейм прибора
         frame = tkinter.Frame(self.window, borderwidth=2, relief='groove', bg=COLOR)
         frame.place(x=10, y=10, width=1310, height=390)
+        down_frame = tkinter.Frame(self.window, borderwidth=3, relief='groove', bg='snow3')
+        down_frame.place(x=180, y=435, width=1100, height=310)
 
         # Линии на приборе
         horizontal_width = 1306
@@ -255,6 +350,21 @@ class Window:
         button_Hz = tkinter.Button(self.window, text='uV/Hz', command=self.button_Hz_click)
         button_Hz.place(x=x + 670, y=y - 50 * 2, width=button_width, height=button_height)
 
+        # Нижнее меню
+        check_transmitter = tkinter.Button(self.window, text='Проверка передатчика',
+                                           command=self.check_transmitter_click)
+        check_transmitter.place(x=20, y=435, width=140, height=button_height)
+        label_f = tkinter.Label(self.window, text='f:')
+        label_f.place(x=20, y=480, width=20, height=button_height)
+        self.get_frequency = tkinter.Entry(self.window, bd=2)
+        self.get_frequency.place(x=40, y=480, width=120, height=button_height)
+        get_frequency_button = tkinter.Button(self.window, text='Установить частоту',
+                                              command=self.get_frequency_button_click)
+        get_frequency_button.place(x=20, y=520, width=140, height=button_height)
+        check_transmitter = tkinter.Button(self.window, text='Проверка приемника',
+                                           command=self.low_dop2_click)
+        check_transmitter.place(x=20, y=565, width=140, height=button_height)
+
     def init_screen(self):
         # Экранчик
         self.screen_frame = tkinter.Frame(self.window, borderwidth=2, relief='groove', bg=COLOR)
@@ -262,11 +372,67 @@ class Window:
         self.screen = tkinter.Label(bg='seagreen')
         self.screen.place(x=70, y=50, width=550, height=85)
 
+    def check_transmitter_click(self):
+        # Автоматическая проверка приёмника
+        self.screen.config(text='Идет проверка приемника')
+        self.high_frequency_click()
+        time.sleep(5)
+        self.disconnect_button_click()
+        time.sleep(0.2)
+        self.high_pow_click()
+        time.sleep(5)
+        self.disconnect_button_click()
+        time.sleep(0.2)
+        self.low_dop2_click()
+        time.sleep(0.2)
+        self.input_button_click()
+        time.sleep(0.2)
+        self.button_9_click()
+        time.sleep(0.2)
+        self.button_point_click()
+        time.sleep(0.2)
+        self.button_5_click()
+        time.sleep(0.2)
+        self.button_kHz_click()
+        time.sleep(5)
+        self.disconnect_button_click()
+        time.sleep(0.2)
+        for _ in range(3):
+            self.button_down_click()
+            time.sleep(0.2)
+        self.input_button_click()
+        time.sleep(10)
+        self.disconnect_button_click()
+        time.sleep(0.2)
+        self.button_down_click()
+        time.sleep(0.2)
+        self.input_button_click()
+        time.sleep(35)
+        for _ in range(2):
+            self.disconnect_button_click()
+            time.sleep(0.2)
+        self.button_down_click()
+        time.sleep(0.2)
+        self.button_0_click()
+        time.sleep(0.2)
+        self.button_point_click()
+        time.sleep(0.2)
+        self.button_3_click()
+        time.sleep(0.2)
+        self.button_Hz_click()
+        time.sleep(0.2)
+        self.high_chm_click()
+        time.sleep(0.2)
+        self.button_5_click()
+        time.sleep(0.2)
+        self.button_kHz_click()
+        self.screen.config(text='Проверка завершена')
+
     def init_window(self):
         self.init_interface()
         self.init_buttons()
         self.init_screen()
-        self.print_inscription(text='Тест сигнала на К2-82 Не забудь нажать ДУ на приборe НА...',
+        self.print_inscription(text='Перед началом работы не забудь нажать ДУ на приборe НА...',
                                x=70, y=20, width=400, height=20)
         self.print_inscription(text='РЕЖИМ', x=65, y=190, width=160, height=15)
         self.print_inscription(text='ВЧ', x=340, y=190, width=160, height=15)
@@ -277,9 +443,10 @@ class Window:
 
 # Соединение с COM портом
 try:
-    com = serial.Serial('COM1', 9600, timeout=1)
+    com = serial.Serial(PORT, 9600, timeout=1)
 except serial.SerialException:
     com = None
 
+# Инициализация интерфейса
 window = Window(com)
 window.init_window()
