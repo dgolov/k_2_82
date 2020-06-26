@@ -1,30 +1,31 @@
 # -*- coding: utf-8 -*-
-# pyinstaller -F -w k2_82.py
-# C:\Users\User\PycharmProjects\k_2_82\k2_82.py
 
 import tkinter, serial, time
+
 from uu import decode, encode
 
 COLOR = 'cornflowerblue'
-COM = ['COM1', 'COM2', 'COM3']
-PORT = COM[1]
 
 
 class Window:
-    def __init__(self, com):
-        self.com = com
+    def __init__(self):
+        self.com = None
         self.interface_lines = []
         self.window = tkinter.Tk()
+        self.port = 'COM2'
+        self.data = []
+        self.cansel = False
+        self.check = False
 
     # Функции кнопок
     def __click(self, commande, code):
         try:
-            com.write(code)
+            self.com.write(code)
             self.screen.config(text="Команда '{}' отправлена на {}".format(commande, self.com.port))
         except serial.SerialException:
             self.screen.config(text='Не удается соедениться с ' + self.com.port)
         except (NameError, AttributeError):
-            self.screen.config(text='Ошибка COM Port: Нет подключения')
+            self.screen.config(text='Ошибка {}: Нет подключения'.format(self.port))
 
     # Блок кнопок РЕЖИМ функции
     def mode_ust_click(self):
@@ -175,9 +176,13 @@ class Window:
         text = 'uV/Hz'
         self.__click(commande=text, code=b'0x14')
 
-    def get_frequency_button_click(self):
-        # Функция ввода частоты с клавиатуры
+    # Функция ввода частоты с клавиатуры
+    def get_frequency_button_click(self, event=None):
         frequency = self.get_frequency.get()
+        error_message = 'Введите корректную частоту (например 151.825 или 151825)'
+
+        if len(frequency) == 6:
+            frequency = frequency[:3] + '.' + frequency[3:]
         if len(frequency) == 7:
             for num in frequency:
                 if num == '1':
@@ -202,32 +207,8 @@ class Window:
                     self.button_0_click()
                 elif num == '.' or num == ',':
                     self.button_point_click()
-        elif len(frequency) == 6:
-            for i, num in enumerate(frequency):
-                if i == 3:
-                    self.button_point_click()
-                if num == '1':
-                    self.button_1_click()
-                elif num == '2':
-                    self.button_2_click()
-                elif num == '3':
-                    self.button_3_click()
-                elif num == '4':
-                    self.button_4_click()
-                elif num == '5':
-                    self.button_5_click()
-                elif num == '6':
-                    self.button_6_click()
-                elif num == '7':
-                    self.button_7_click()
-                elif num == '8':
-                    self.button_8_click()
-                elif num == '9':
-                    self.button_9_click()
-                elif num == '0':
-                    self.button_0_click()
         else:
-            self.screen.config(text='Введите корректную частоту (например 151.825 или 151825)')
+            self.screen.config(text=error_message)
             return
         self.button_MHz_click()
         self.screen.config(text='Частота {} установлена на приборе'.format(frequency))
@@ -235,19 +216,26 @@ class Window:
     def init_interface(self):
         # Главный экран
         self.window.title('К2-82 Alpha-test')
-        self.window.minsize(width=1330, height=780)
+        self.window.minsize(width=1330, height=770)
 
         # Фрейм прибора
         frame = tkinter.Frame(self.window, borderwidth=2, relief='groove', bg=COLOR)
         frame.place(x=10, y=10, width=1310, height=390)
         down_frame = tkinter.Frame(self.window, borderwidth=3, relief='groove', bg='snow3')
-        down_frame.place(x=180, y=435, width=1100, height=310)
+        down_frame.place(x=180, y=435, width=1100, height=300)
+
+        self.print_inscription(text='Перед началом работы не забудь нажать ДУ на приборe НА...',
+                               x=70, y=20, width=400, height=20)
+        self.print_inscription(text='РЕЖИМ', x=65, y=190, width=160, height=15)
+        self.print_inscription(text='ВЧ', x=340, y=190, width=160, height=15)
+        self.print_inscription(text='НЧ', x=630, y=190, width=160, height=15)
+        self.print_inscription(text='ИЗМЕНЕНИЕ', x=1030, y=190, width=160, height=15)
 
         # Линии на приборе
         horizontal_width = 1306
         horizontal_height = 5
         for _ in range(6):
-            self.interface_lines.append(tkinter.Label(self.window))
+            self.interface_lines.append(tkinter.Label(self.window, bg='snow3'))
         self.interface_lines[0].place(x=270, y=180, width=horizontal_height, height=217)
         self.interface_lines[1].place(x=560, y=180, width=horizontal_height, height=217)
         self.interface_lines[2].place(x=840, y=12, width=horizontal_height, height=386)
@@ -255,10 +243,53 @@ class Window:
         self.interface_lines[4].place(x=12, y=210, width=horizontal_width, height=horizontal_height)
         self.interface_lines[5].place(x=12, y=380, width=horizontal_width, height=horizontal_height)
 
+    # Надписи
     def print_inscription(self, text, x, y, width, height, color=COLOR):
-        # Надписи
         inscription = tkinter.Label(self.window, text=text, bg=color)
         inscription.place(x=x, y=y, width=width, height=height)
+
+    # Функции выбора COM порта в верхнем меню
+    def menu_com1_choice(self):
+        try:
+            self.com = serial.Serial('COM1', 9600, timeout=1)
+            self.screen.config(text='Соединение с COM1 установлено')
+            self.port = 'COM1'
+        except serial.SerialException:
+            self.screen.config(text='Не удается соедениться с COM1')
+
+    def menu_com2_choice(self):
+        try:
+            self.com = serial.Serial('COM2', 9600, timeout=1)
+            self.screen.config(text='Соединение с COM2 установлено')
+            self.port = 'COM2'
+        except serial.SerialException:
+            self.screen.config(text='Не удается соедениться с COM2')
+
+    def menu_com3_choice(self):
+        try:
+            self.com = serial.Serial('COM3', 9600, timeout=1)
+            self.screen.config(text='Соединение с COM3 установлено')
+            self.port = 'COM3'
+        except serial.SerialException:
+            self.screen.config(text='Не удается соедениться с COM3')
+
+    # Верхнее меню
+    def init_top_menu(self):
+        menu_item = tkinter.Menu(self.window)
+        self.window.config(menu=menu_item)
+        file_menu = tkinter.Menu(menu_item, tearoff=0)
+        settings_menu = tkinter.Menu(menu_item, tearoff=0)
+        help_menu = tkinter.Menu(menu_item, tearoff=0)
+        menu_item.add_cascade(label='Файл', menu=file_menu)
+        menu_item.add_cascade(label='Настройки', menu=settings_menu)
+        menu_item.add_cascade(label='Справка', menu=help_menu)
+        file_menu.add_command(label='Открыть')
+        file_menu.add_command(label='Сохранить')
+        com_port_menu = tkinter.Menu(settings_menu, tearoff=0)
+        settings_menu.add_cascade(label='COM port', menu=com_port_menu)
+        com_port_menu.add_command(label='COM1', command=self.menu_com1_choice)
+        com_port_menu.add_command(label='COM2', command=self.menu_com2_choice)
+        com_port_menu.add_command(label='COM3', command=self.menu_com3_choice)
 
     def init_buttons(self):
         button_width = 80
@@ -354,99 +385,90 @@ class Window:
         check_transmitter = tkinter.Button(self.window, text='Проверка передатчика',
                                            command=self.check_transmitter_click)
         check_transmitter.place(x=20, y=435, width=140, height=button_height)
+        button_cansel = tkinter.Button(self.window, text='Esc - Отмена', command=self.button_cansel_click)
+        button_cansel.place(x=20, y=480, width=140, height=button_height)
+        button_cansel.bind('<Button-1>', self.button_cansel_click)
         label_f = tkinter.Label(self.window, text='f:')
-        label_f.place(x=20, y=480, width=20, height=button_height)
+        label_f.place(x=20, y=525, width=20, height=button_height)
         self.get_frequency = tkinter.Entry(self.window, bd=2)
-        self.get_frequency.place(x=40, y=480, width=120, height=button_height)
+        self.get_frequency.place(x=40, y=525, width=120, height=30)
+        self.get_frequency.bind('<Return>', self.get_frequency_button_click)
         get_frequency_button = tkinter.Button(self.window, text='Установить частоту',
                                               command=self.get_frequency_button_click)
-        get_frequency_button.place(x=20, y=520, width=140, height=button_height)
+        get_frequency_button.place(x=20, y=565, width=140, height=button_height)
         check_transmitter = tkinter.Button(self.window, text='Проверка приемника',
                                            command=self.low_dop2_click)
-        check_transmitter.place(x=20, y=565, width=140, height=button_height)
+        check_transmitter.place(x=20, y=610, width=140, height=button_height)
 
     def init_screen(self):
         # Экранчик
-        self.screen_frame = tkinter.Frame(self.window, borderwidth=2, relief='groove', bg=COLOR)
+        self.screen_frame = tkinter.Frame(self.window, bd=4, relief='groove', bg=COLOR)
         self.screen_frame.place(x=69, y=49, width=552, height=87)
         self.screen = tkinter.Label(bg='seagreen')
         self.screen.place(x=70, y=50, width=550, height=85)
 
+    # Автоматическая проверка приёмника
     def check_transmitter_click(self):
-        # Автоматическая проверка приёмника
         self.screen.config(text='Идет проверка приемника')
-        self.high_frequency_click()
-        time.sleep(5)
-        self.disconnect_button_click()
-        time.sleep(0.2)
-        self.high_pow_click()
-        time.sleep(5)
-        self.disconnect_button_click()
-        time.sleep(0.2)
-        self.low_dop2_click()
-        time.sleep(0.2)
-        self.input_button_click()
-        time.sleep(0.2)
-        self.button_9_click()
-        time.sleep(0.2)
-        self.button_point_click()
-        time.sleep(0.2)
-        self.button_5_click()
-        time.sleep(0.2)
-        self.button_kHz_click()
-        time.sleep(5)
-        self.disconnect_button_click()
-        time.sleep(0.2)
-        for _ in range(3):
-            self.button_down_click()
-            time.sleep(0.2)
-        self.input_button_click()
-        time.sleep(10)
-        self.disconnect_button_click()
-        time.sleep(0.2)
-        self.button_down_click()
-        time.sleep(0.2)
-        self.input_button_click()
-        time.sleep(35)
-        for _ in range(2):
-            self.disconnect_button_click()
-            time.sleep(0.2)
-        self.button_down_click()
-        time.sleep(0.2)
-        self.button_0_click()
-        time.sleep(0.2)
-        self.button_point_click()
-        time.sleep(0.2)
-        self.button_3_click()
-        time.sleep(0.2)
-        self.button_Hz_click()
-        time.sleep(0.2)
-        self.high_chm_click()
-        time.sleep(0.2)
-        self.button_5_click()
-        time.sleep(0.2)
-        self.button_kHz_click()
+        functions = [self.high_frequency_click, self.disconnect_button_click, self.high_pow_click,
+                     self.disconnect_button_click, self.low_dop2_click, self.input_button_click,
+                     self.button_9_click, self.button_point_click, self.button_5_click, self.button_kHz_click,
+                     self.disconnect_button_click, self.button_down_click, self.input_button_click,
+                     self.disconnect_button_click, self.button_down_click, self.input_button_click,
+                     self.disconnect_button_click, self.button_down_click, self.button_0_click,
+                     self.button_point_click, self.button_3_click, self.button_Hz_click, self.high_chm_click,
+                     self.button_3_click, self.button_kHz_click, self.button_down_click, self.button_1_click,
+                     self.button_kHz_click]
+        timeout_02_functions = [1, 3, 4, 5, 6, 7, 8, 10, 13, 14, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+
+        for step, function in enumerate(functions):
+            if self.cansel:
+                return
+            if step == 11:
+                for _ in range(2):
+                    function()
+                    time.sleep(0.2)
+            elif step == 16:
+                for _ in range(2):
+                    function()
+                    time.sleep(0.2)
+
+            function()
+
+            if step in [0, 2, 9]:
+                time.sleep(5)
+                self.data.append(self.com.readline())
+            elif step in timeout_02_functions:
+                 time.sleep(0.2)
+            elif step == 12:
+                time.sleep(10)
+                self.data.append(self.com.readline())
+            elif step == 15:
+                time.sleep(35)
+                self.data.append(self.com.readline())
+
         self.screen.config(text='Проверка завершена')
 
+    def button_cansel_click(self, event=None):
+        self.cansel = True
+
     def init_window(self):
+        # Соединение с COM портом
+        try:
+            self.com = serial.Serial(self.port, 9600, timeout=1)
+        except serial.SerialException:
+            self.com = None
+
+        self.init_top_menu()
         self.init_interface()
         self.init_buttons()
         self.init_screen()
-        self.print_inscription(text='Перед началом работы не забудь нажать ДУ на приборe НА...',
-                               x=70, y=20, width=400, height=20)
-        self.print_inscription(text='РЕЖИМ', x=65, y=190, width=160, height=15)
-        self.print_inscription(text='ВЧ', x=340, y=190, width=160, height=15)
-        self.print_inscription(text='НЧ', x=630, y=190, width=160, height=15)
-        self.print_inscription(text='ИЗМЕНЕНИЕ', x=1030, y=190, width=160, height=15)
-        self.window.mainloop()
 
 
-# Соединение с COM портом
-try:
-    com = serial.Serial(PORT, 9600, timeout=1)
-except serial.SerialException:
-    com = None
+
 
 # Инициализация интерфейса
-window = Window(com)
-window.init_window()
+k2 = Window()
+k2.init_window()
+
+k2.window.mainloop()
