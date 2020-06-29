@@ -1,23 +1,54 @@
 # -*- coding: utf-8 -*-
 
-import tkinter, serial, time
+import tkinter, serial, time, xlwt
 from tkinter import messagebox
+from tkinter import filedialog
 from uu import decode
 
 
+
 COLOR = 'cornflowerblue'
+
+class Import_to_Excel:
+    def __init__(self):
+        self.colls = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+        self.book = xlwt.Workbook(encoding='utf8')
+        self.sheet = self.book.add_sheet('Sheet')
+        self.line = 0
+
+    def write_book(self, *args):
+        row = self.sheet.row(self.line)
+        for index, col in enumerate(self.colls):
+            value = args[index]
+            row.write(index, value)
+        self.line += 1
+
+
+    def save_book(self, name):
+        self.book.save(name + '.xls')
+
 
 class K2_functional:
 
     def __init__(self):
          self.port = None
          self.data = set()
-         self.checks = []   #Список проверенных
-         self.f = 0
-         self.p = 0
-         self.kg = 0
-         self.chm = 0
-         self.chm_max = 0
+         self.data2 = set()
+
+         self.f = 151.825
+         self.dev = 100
+         self.p = 2.2
+         self.hight_p = 5.0
+         self.kg = 1.0
+         self.chm = 9.5
+         self.chm_max = 4.9
+
+         self.out_pow = [5.2, 0,5]
+         self.selectivity = 71
+         self.out_kg = 2.4
+
+
+         self.excel_book = Import_to_Excel()
 
 
     def connect_com_port(self, port):
@@ -45,8 +76,16 @@ class K2_functional:
     def input_frequency(self, f):
         error_message = 'Введите корректную частоту (например 151.825 или 151825)'
 
-        if len(f) == 6:
-            f = f[:3] + '.' + f[3:]
+        if len(f) == 3:
+            f += '.000'
+        elif len(f) == 5:
+            f += '00'
+        elif len(f) == 6:
+            if f[3] == '.':
+                f += '0'
+            else:
+                f = f[:3] + '.' + f[3:]
+
         if len(f) == 7:
             for num in f:
                 if num == '1':
@@ -80,46 +119,97 @@ class K2_functional:
 
     def check_transmitter(self, window, screen):
         functions = [b'0x26', b'0x20', b'0x29', b'0x20', b'0x33', b'0x15', b'0x09', b'0x10', b'0x05', b'0x13',
-                     b'0x20', b'0x17', b'0x15', b'0x20', b'0x17', b'0x15', b'0x20', b'0x17', b'0x00', b'0x10',
-                     b'0x03', b'0x14', b'0x27', b'0x03', b'0x13', b'0x17', b'0x01', b'0x13', b'0x23']
-        timeout_02_functions = [1, 3, 4, 5, 6, 7, 8, 10, 13, 14, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+                     b'0x20', b'0x17', b'0x15', b'0x20', b'0x17', b'0x15', b'0x20', b'0x16', b'0x17', b'0x15',
+                     b'0,15', b'0x20', b'0x17', b'0x00', b'0x10', b'0x03', b'0x14', b'0x27', b'0x03', b'0x13',
+                     b'0x17', b'0x01', b'0x13', b'0x23']
+        # timeout_02_functions = [1, 3, 4, 5, 6, 7, 8, 10, 13, 14, 16, 17, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
         percents = 0
-
 
         for step, function in enumerate(functions):
             screen.config(text='Проверяю передатчик. Завершено {}%'.format(round(percents, 1)))
             self.data.add(self.com.readline())
             window.update()
 
-            if step in [11, 16]:
+            if step in [11, 21, 18]:
                 for _ in range(2):
                     self.send_code(function)
                     time.sleep(0.2)
 
             self.send_code(function)
 
-            if step == 28:
+            if step == 19:
+                for char in str(self.f):
+                    if char == '.':
+                        self.send_code(b'0x10')
+                    elif char == '1':
+                        self.send_code(b'0x01')
+                    elif char == '2':
+                        self.send_code(b'0x02')
+                    elif char == '3':
+                        self.send_code(b'0x03')
+                    elif char == '4':
+                        self.send_code(b'0x04')
+                    elif char == '5':
+                        self.send_code(b'0x05')
+                    elif char == '6':
+                        self.send_code(b'0x06')
+                    elif char == '7':
+                        self.send_code(b'0x07')
+                    elif char == '8':
+                        self.send_code(b'0x08')
+                    elif char == '9':
+                        self.send_code(b'0x09')
+                    elif char == '0':
+                        self.send_code(b'0x00')
+            if step == 33:
                 time.sleep(0.2)
                 self.send_code(function)
-
-            if step in [0, 2, 9]:
-                pass#time.sleep(5)
-            elif step in timeout_02_functions:
-                 pass#time.sleep(0.2)
+            # elif step in timeout_02_functions:
+            #      time.sleep(0.1)
+            elif step in [0, 2, 9, 20]:
+                time.sleep(5)
             elif step == 12:
-                pass#time.sleep(10)
+                time.sleep(10)
             elif step == 15:
+                self.take_result()
                 pass#time.sleep(33)
-
-            percents += 3.44827586
+            percents += 3.03030303
         screen.config(text='Проверка завершена')
         self.data.add(self.com.readline())
         self.take_result()
+        self.input_frequency(str(self.f))
+        self.excel_book.write_book(self.f, self.p, self.hight_p, self.dev, self.kg, self.chm, self.chm_max)
+
+
+    def check_receiver(self, window, screen):
+        functions = [ b'0x23', b'0x33', b'0x17', b'0x15', b'0x00', b'0x10', b'0x05', b'0x13',
+                      b'0x15', b'0x00', b'0x10', b'0x02', b'0x05', b'0x14']
+        screen.config(text='Проверяю приёмник')
+        self.data.add(self.com.readline())
+        for step, function in enumerate(functions):
+            window.update()
+            if step == 2:
+                self.send_code(function)
+                time.sleep(0.2)
+
+            self.send_code(function)
+            time.sleep(0.2)
+
+            if step == 7:
+                time.sleep(10)
+                messagebox.showinfo('Проверка приёмника', 'Убавьте выходную мощность регулятором громкости')
+                self.data.add(self.com.readline())
+            if step == 8:
+                time.sleep(10)
+                messagebox.showinfo('Проверка приёмника', 'Проверка завершена')
+                self.data.add(self.com.readline())
+                time.sleep(2)
+        self.data.add(self.com.readline())
+        print(self.data)
 
 
     def take_result(self):
         data_list = []
-
         for line in self.data:
             data_list.append(line.decode('cp866'))
 
@@ -135,6 +225,7 @@ class K2_functional:
                 self.chm_max = float(line[7:-6])
             elif 'f=' in line:
                 line = line[2:9]
+
                 if line[6] == '6' or line[6] == '4':
                     line = line[:3] + line[4:]
                     line = line[:5] + '5'
@@ -146,7 +237,16 @@ class K2_functional:
                 else:
                     self.f = float(line)
                     self.f = round(self.f,2)
+            elif 'Отклонение= ' in line:
+                temp = float(line[12:-6])
+                if self.dev > temp:
+                    self.dev = temp
+                    temp = 0
 
+        if self.chm_max == 0.0:
+            self.chm_max = 4.8
+
+        self.data = set()
 
 
 # Блок кнопок РЕЖИМ функции
@@ -341,26 +441,33 @@ def button_Hz_click():
 
 # Нижнее меню
 def get_frequency_button_click(event=None):
-    frequency = get_frequency.get()
-    screen.config(text=functional.input_frequency(frequency))
+    try:
+        frequency = get_frequency.get()
+        screen.config(text=functional.input_frequency(frequency))
+    except AttributeError:
+        screen.config(text='Не удается соедениться с {}'.format(functional.port))
 
 def check_transmitter_button():
     global param_y
-    i = 0   # Индексация по списку проверенных
 
-    functional.check_transmitter(window=window, screen=screen)
+    try:
+        functional.check_transmitter(window=window, screen=screen)
 
-    print_inscription(text=functional.f, x=190, y=param_y, width=100, height=20,
-                      color='snow3', justify=tkinter.LEFT)
-    print_inscription(text=functional.p, x=280, y=param_y, width=80, height=20,
-                      color='snow3', justify=tkinter.LEFT)
-    print_inscription(text=functional.kg, x=350, y=param_y, width=80, height=20,
-                      color='snow3', justify=tkinter.LEFT)
-    print_inscription(text=functional.chm, x=410, y=param_y, width=200, height=20,
-                      color='snow3', justify=tkinter.LEFT)
-    print_inscription(text=functional.chm_max, x=610, y=param_y, width=150, height=20,
-                      color='snow3', justify=tkinter.LEFT)
-    param_y += 20
+        print_inscription(text=functional.f, x=190, y=param_y, width=100, height=20,
+                          color='snow3', justify=tkinter.LEFT)
+        print_inscription(text=functional.p, x=280, y=param_y, width=80, height=20,
+                          color='snow3', justify=tkinter.LEFT)
+        print_inscription(text=functional.dev, x=350, y=param_y, width=100, height=20,
+                          color='snow3', justify=tkinter.LEFT)
+        print_inscription(text=functional.kg, x=435, y=param_y, width=70, height=20,
+                          color='snow3', justify=tkinter.LEFT)
+        print_inscription(text=functional.chm, x=495, y=param_y, width=70, height=20,
+                          color='snow3', justify=tkinter.LEFT)
+        print_inscription(text=functional.chm_max, x=575, y=param_y, width=150, height=20,
+                          color='snow3', justify=tkinter.LEFT)
+        param_y += 20
+    except AttributeError:
+        screen.config(text='Не удается соедениться с {}'.format(functional.port))
 
 
 def button_cancel_click(event=None):
@@ -368,10 +475,13 @@ def button_cancel_click(event=None):
     pass
 
 def check_receiver_button_click():
-    pass
+    try:
+        functional.check_receiver(window=window, screen=screen)
+    except AttributeError:
+        screen.config(text='Не удается соедениться с {}'.format(functional.port))
 
 
-# Функции выбора COM порта в верхнем меню
+# Функции в верхнем меню
 def menu_com1_choice():
     screen.config(text=functional.connect_com_port('COM1'))
 
@@ -380,6 +490,11 @@ def menu_com2_choice():
 
 def menu_com3_choice():
     screen.config(text=functional.connect_com_port('COM3'))
+
+def save_file():
+        name = filedialog.asksaveasfilename(filetypes=(('Excel', '*.xls'), ('Все файлы','*.*')))
+        if name != '':
+            functional.excel_book.save_book(name)
 
 
 def init_interface():
@@ -397,10 +512,10 @@ def init_interface():
 
     print_inscription(text='Частота', x=190, y=440, width=100, height=30, color='snow3', justify=tkinter.LEFT)
     print_inscription(text='Мощность', x=280, y=440, width=80, height=30, color='snow3', justify=tkinter.LEFT)
-    print_inscription(text='КНИ', x=350, y=440, width=80, height=30, color='snow3', justify=tkinter.LEFT)
-    print_inscription(text='Чувств модуляционного входа',
-                      x=410, y=440, width=200, height=30, color='snow3', justify=tkinter.LEFT)
-    print_inscription(text='Максимальная девиация', x=610, y=440, width=150, height=30,
+    print_inscription(text='Отклонение', x=350, y=440, width=100, height=30, color='snow3', justify=tkinter.LEFT)
+    print_inscription(text='КНИ', x=435, y=440, width=70, height=30, color='snow3', justify=tkinter.LEFT)
+    print_inscription(text='ЧМ', x=495, y=440, width=70, height=30, color='snow3', justify=tkinter.LEFT)
+    print_inscription(text='Максимальная девиация', x=575, y=440, width=150, height=30,
                       color='snow3', justify=tkinter.LEFT)
 
     # Линии на приборе
@@ -423,7 +538,6 @@ def print_inscription(text, x, y, width, height, color=COLOR , justify=tkinter.C
 
 
 # Верхнее меню
-
 def init_top_menu():
     menu_item = tkinter.Menu(window)
     window.config(menu=menu_item)
@@ -434,7 +548,7 @@ def init_top_menu():
     menu_item.add_cascade(label='Настройки', menu=settings_menu)
     menu_item.add_cascade(label='Справка', menu=help_menu)
     file_menu.add_command(label='Открыть')
-    file_menu.add_command(label='Сохранить')
+    file_menu.add_command(label='Сохранить', command=save_file)
     com_port_menu = tkinter.Menu(settings_menu, tearoff=0)
     settings_menu.add_cascade(label='COM port', menu=com_port_menu)
     com_port_menu.add_command(label='COM1', command=menu_com1_choice)
@@ -573,8 +687,6 @@ screen.place(x=70, y=50, width=550, height=85)
 
 functional = K2_functional()
 functional.connect_com_port('COM2')
-
-print(functional.data)
 
 
 window.mainloop()
