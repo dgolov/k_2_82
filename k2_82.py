@@ -1,310 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import random
-import tkinter, serial, time, xlwt
-from tkinter import messagebox
+import tkinter
+import check
+import k2_functional
 from tkinter import filedialog
-from uu import decode
 
 
 COLOR = 'cornflowerblue'
-
-
-class Import_to_Excel:
-
-    def __init__(self):
-        self.colls = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
-        self.book = xlwt.Workbook(encoding='utf8')
-        self.sheet = self.book.add_sheet('Sheet')
-        self.line = 0
-
-    def write_book(self, *args):
-        row = self.sheet.row(self.line)
-        for index, col in enumerate(self.colls):
-            value = args[index]
-            row.write(index, value)
-        self.line += 1
-
-    def save_book(self, name):
-        self.book.save(name + '.xls')
-
-
-
-class Check:
-
-    def __init__(self, functional, window, screen):
-        self.f = 136.000
-        self.dev = 0
-        self.p = 0
-        self.hight_p = 0
-        self.kg = 0
-        self.chm_u = 0
-        self.chm = 0
-        self.chm_max = 0
-        self.out_pow = 0
-        self.selectivity = 71
-        self.out_kg = 0
-        self.i = 50
-        self.window = window
-        self.screen = screen
-        self.data = set()
-        self.functional = functional
-        functional.connect_com_port(functional.COM)
-
-
-    def run(self):
-        self.functional.check = True
-        messagebox.showinfo('Проверка передатчика', 'Поставьте радиостанцию в режим передачи')
-        self.check_transmitter()
-        if self.functional.cancel:
-            self.functional.check = False
-            return
-        messagebox.showinfo('Проверка передатчика', 'Снимите радиостанцию с режима передачи')
-        self.check_receiver()
-        if self.functional.cancel:
-            self.functional.check = False
-            return
-        screen.config(text='Проверка завершена')
-        self.functional.excel_book.write_book(self.f, self.p, self.hight_p, self.dev, self.kg, self.chm_u, self.chm_max,
-                                              0.24, self.out_pow, '>0,5', self.selectivity, self.out_kg)
-        self.functional.check = False
-
-
-    def check_transmitter(self, model = 'Motorola'):
-        if model == 'Motorola':
-            self.chm_u = 9.5
-        functions = [b'0x26', b'0x20', b'0x29', b'0x20', b'0x33', b'0x15', b'0x20', b'0x17',
-                     b'0x15', b'0x20', b'0x17', b'0x15', b'0x20', b'0x16', b'0x17', b'0x15',
-                     b'0x15', b'0x20', b'0x17', b'0x00', b'0x10', b'0x05', b'0x13', b'0x27',
-                     b'0x03', b'0x13', b'0x17', b'0x01', b'0x13', b'0x23']
-        timeout_02_functions = [1, 3, 4, 6, 9, 10, 12, 13, 18, 19, 20, 23, 22, 23, 24, 25, 26, 27, 28]
-        percents = 0
-        for step, function in enumerate(functions):
-            if self.functional.cancel: return
-            self.screen.config(text='Проверяю передатчик. Завершено {}%'.format(round(percents, 1)))
-            self.data.add(self.functional.com.readline())
-            self.window.update()
-            # Повторяющиеся действия, например стрелки
-            if step in [7, 17, 14]:
-                for _ in range(2):
-                    self.functional.send_code(function)
-                    time.sleep(0.2)
-            self.functional.send_code(function)
-            # Установка частоты
-            if step == 15:
-                for char in str(self.f):
-                    self.functional.numbers_entry(char=char)
-            # УСТ в конце проверки
-            if step == 29:
-                time.sleep(0.2)
-                self.functional.send_code(function)
-            # Чувствительность модуляционного входа
-            elif step == 5:
-                for char in str(self.chm_u):
-                    self.functional.numbers_entry(char=char)
-                time.sleep(0.1)
-                self.functional.send_code(b'0x13')
-                time.sleep(4)
-                for _ in range(10):
-                    self.data.add(self.functional.com.readline())
-                self.take_result(self.description_tr)
-                if self.chm < 2.95 or self.chm > 3.05:
-                    difference = (3.0 - self.chm) / 0.025
-                    difference = round(difference)
-                    to_add = difference / 10
-                    self.chm_u += to_add
-                for char in str(self.chm_u):
-                    self.functional.numbers_entry(char=char)
-                time.sleep(0.1)
-                self.functional.send_code(b'0x13')
-                time.sleep(7)
-            # Основные шаги между режимами
-            elif step in timeout_02_functions:
-                 time.sleep(0.2)
-            # Частота, мощность, отклонение
-            elif step in [0, 2, 16]:
-                time.sleep(5)
-            # КНИ
-            elif step == 8:
-                time.sleep(10)
-            # Максимальная девиация
-            elif step == 11:
-                self.take_result(self.description_tr)
-                time.sleep(self.functional.check_deviation_time)
-            percents += 100 / len(functions)
-        self.data.add(self.functional.com.readline())
-        self.take_result(self.description_tr)
-        self.functional.input_frequency(str(self.f))
-
-
-    def check_receiver(self):
-        functions = [ b'0x23', b'0x33', b'0x17', b'0x15', b'0x13', b'0x15',
-                      b'0x00', b'0x10', b'0x02', b'0x05', b'0x14', b'0x20']
-        self.screen.config(text='Проверяю приёмник')
-        for step, function in enumerate(functions):
-            if self.functional.cancel: return
-            self.window.update()
-            if step == 2 or step == 11:
-                self.functional.send_code(function)
-                time.sleep(0.2)
-            self.functional.send_code(function)
-            time.sleep(0.2)
-            if step == 4:
-                time.sleep(5)
-                messagebox.showinfo('Проверка приёмника', 'Убавьте выходную мощность регулятором громкости')
-            if step == 5:
-                time.sleep(5)
-        for _ in range(20):
-             self.data.add(self.functional.com.readline())
-        self.take_result(self.description_rc)
-
-
-    def take_result(self, func):
-        data_list = []
-        for line in self.data:
-            data_list.append(line.decode('cp866'))
-        data_list.sort()
-        func(data_list)
-
-
-    def description_tr(self, data_list):
-        for line in data_list:
-            # print(line)
-            if 'Kг= ' in line:
-                self.kg = float(line[4:-4])
-            elif 'P= ' in line:
-                self.p = float(line[3:-6])
-            elif 'ЧМ+= ' in line:
-                if float(line[5:-6]) != self.chm_u and self.chm == 0:
-                    self.chm = float(line[5:-6])
-            elif 'ЧМмах= ' in line:
-                self.chm_max = float(line[7:-6])
-            elif 'f=' in line:
-                line = line[2:9]
-                if line[6] == '6' or line[6] == '4':
-                    line = line[:3] + line[4:]
-                    line = line[:5] + '5'
-                    line = line[:3] + '.' + line[3:]
-                    self.f = float(line)
-                elif line[6] == '5':
-                    self.f = float(line)
-                    self.f = round(self.f, 3)
-                else:
-                    self.f = float(line)
-                    self.f = round(self.f, 2)
-            elif 'Отклонение= ' in line:
-                self.dev = float(line[12:-6])
-                self.dev *= 1000
-                self.dev = int(self.dev)
-        # Если отключена макс девиация
-        if self.chm_max == 0.0:
-            self.chm_max = random.randint(445, 491) / 100
-        self.data = set()
-
-
-    def description_rc(self, data_list):
-        for line in data_list:
-            if 'Kг= ' in line:
-                if 0 < self.out_kg <= float(line[4:-4]):
-                    self.out_kg = float(line[4:-4])
-                elif self.out_kg == 0:
-                    self.out_kg = float(line[4:-4])
-            elif 'U= ' in line:
-                if float(line[3:-6]) > 4.0:
-                    self.out_pow = float(line[3:-6])
-        self.data = set()
-
-
-
-class K2_functional:
-
-    COM = 'COM2'
-
-    def __init__(self):
-        self.port = None
-        self.check_deviation_time = 33
-        self.cancel = False
-        self.check = False
-        self.excel_book = Import_to_Excel()
-
-
-    def connect_com_port(self, port):
-        self.port = port
-        self.com = None
-
-        try:
-            self.com = serial.Serial(port, 9600, timeout=1)
-            return 'Соединение с {} установлено'.format(port)
-        except serial.SerialException:
-            return 'Не удается соедениться с {}'.format(port)
-
-
-    def send_code(self, code, commande=None):
-        try:
-            self.com.write(code)
-            if commande:
-                return  "Команда '{}' отправлена на {}".format(commande, self.com.port)
-        except serial.SerialException:
-            return 'Не удается соедениться с ' + self.com.port
-        except (NameError, AttributeError):
-            return 'Ошибка {}: Нет подключения'.format(self.port)
-
-
-    def input_frequency(self, f):
-        error_message = 'Введите корректную частоту (например 151.825 или 151825)'
-
-        if len(f) == 3:
-            f += '.000'
-        elif len(f) == 5:
-            f += '00'
-        elif len(f) == 6:
-            if f[3] == '.':
-                f += '0'
-            else:
-                f = f[:3] + '.' + f[3:]
-        if len(f) == 7:
-            for char in f:
-                self.numbers_entry(char=char)
-        else:
-            return error_message
-        self.send_code(b'0x12')
-        return 'Частота {} установлена на приборе'.format(f)
-
-
-    def numbers_entry(self, char):
-        if char == '1':
-            self.send_code(b'0x01')
-            time.sleep(0.1)
-        elif char == '2':
-            self.send_code(b'0x02')
-            time.sleep(0.1)
-        elif char == '3':
-            self.send_code(b'0x03')
-            time.sleep(0.1)
-        elif char == '4':
-            self.send_code(b'0x04')
-            time.sleep(0.1)
-        elif char == '5':
-            self.send_code(b'0x05')
-            time.sleep(0.1)
-        elif char == '6':
-            self.send_code(b'0x06')
-            time.sleep(0.1)
-        elif char == '7':
-            self.send_code(b'0x07')
-            time.sleep(0.1)
-        elif char == '8':
-            self.send_code(b'0x08')
-            time.sleep(0.1)
-        elif char == '9':
-            self.send_code(b'0x09')
-            time.sleep(0.1)
-        elif char == '0':
-            self.send_code(b'0x00')
-            time.sleep(0.1)
-        elif char == '.' or char == ',':
-            self.send_code(b'0x10')
-            time.sleep(0.1)
 
 
 # Блок кнопок РЕЖИМ функции
@@ -480,7 +182,7 @@ def button_line_click():
     screen.config(text=result)
 
 
-# множетели
+# Множетели
 def button_MHz_click():
     text = 'V/MHz'
     result = functional.send_code(commande=text, code=b'0x12')
@@ -498,47 +200,83 @@ def button_Hz_click():
 
 
 # Нижнее меню
-def get_frequency_button_click(event=None):
-    try:
-        frequency = get_frequency.get()
-        screen.config(text=functional.input_frequency(frequency))
-    except AttributeError:
-        screen.config(text='Не удается соедениться с {}'.format(functional.port))
+def set_model_motorola():
+    """ Выбор модели радиостанции """
+    functional.model = 'Motorola'
+    print_inscription(text='Модель - {}'.format(functional.model), bg_color = 'gray95',
+                      text_color = 'blue4', x=310, y=410, width=110, height=20)
+
+def set_model_altavia():
+    """ Выбор модели радиостанции """
+    functional.model = 'Альтавия'
+    print_inscription(text='Модель - {}'.format(functional.model), bg_color = 'gray95',
+                      text_color = 'blue4', x=310, y=410, width=110, height=20)
+
+def set_model_icom():
+    """ Выбор модели радиостанции """
+    functional.model = 'Icom'
+    print_inscription(text='Модель - {}      '.format(functional.model), bg_color = 'gray95',
+                      text_color = 'blue4', x=310, y=410, width=110, height=20)
 
 def check_rs_button_click():
+    """ Кнопка запуска цикла проверки радиостанции """
     global param_y
+
     try:
-        new_check = Check(functional, window, screen)
+        new_check = check.Check(functional, window, screen)
         new_check.run()
         if functional.cancel:
             functional.cancel = False
             screen.config(text='Проверка отменена')
             return
         param_y += 20
+
         print_inscription(text=new_check.f, x=190, y=param_y, width=100, height=20,
-                          color='snow3', justify=tkinter.LEFT)
+                          bg_color='snow3', justify=tkinter.LEFT)
+        color = 'red' if new_check.p < 2 else '#000000'
         print_inscription(text=new_check.p, x=280, y=param_y, width=80, height=20,
-                          color='snow3', justify=tkinter.LEFT)
+                              bg_color='snow3', text_color = color, justify=tkinter.LEFT)
+        if functional.model == 'Motorola':
+            color = 'red' if new_check.dev > 300 else '#000000'
+        else:
+            color = 'red' if new_check.dev > 600 else '#000000'
         print_inscription(text=new_check.dev, x=350, y=param_y, width=100, height=20,
-                          color='snow3', justify=tkinter.LEFT)
+                          bg_color='snow3', text_color = color, justify=tkinter.LEFT)
+        color = 'red' if new_check.kg > 3 else '#000000'
         print_inscription(text=new_check.kg, x=435, y=param_y, width=70, height=20,
-                          color='snow3', justify=tkinter.LEFT)
+                          bg_color='snow3', text_color = color, justify=tkinter.LEFT)
+        color = 'red' if new_check.chm_u > 20 else '#000000'
         print_inscription(text=new_check.chm_u, x=495, y=param_y, width=70, height=20,
-                          color='snow3', justify=tkinter.LEFT)
+                          bg_color='snow3', text_color = color, justify=tkinter.LEFT)
+        color = 'red' if new_check.chm_max > 5 else '#000000'
         print_inscription(text=new_check.chm_max, x=575, y=param_y, width=150, height=20,
-                          color='snow3', justify=tkinter.LEFT)
+                          bg_color='snow3', text_color = color, justify=tkinter.LEFT)
+        if functional.model != 'Альтавия':
+            color = 'red' if new_check.out_pow < 2 else '#000000'
+        else: color = '#000000'
         print_inscription(text=new_check.out_pow, x=725, y=param_y, width=150, height=30,
-                          color='snow3', justify=tkinter.LEFT)
+                          bg_color='snow3', text_color = color, justify=tkinter.LEFT)
+        color = 'red' if new_check.out_kg > 5 else '#000000'
         print_inscription(text=new_check.out_kg, x=875, y=param_y, width=70, height=30,
-                          color='snow3', justify=tkinter.LEFT)
+                          bg_color='snow3', text_color = color, justify=tkinter.LEFT)
     except AttributeError:
         screen.config(text='Не удается соедениться с {}'.format(functional.port))
 
 def button_cancel_click():
+    """ Кнопка отмены цикла проверки """
     if functional.check:
         functional.cancel = True
 
+def get_frequency_button_click(event=None):
+    """ Кнопка установки частоты на К2-82 """
+    try:
+        frequency = get_frequency.get()
+        screen.config(text=functional.input_frequency(frequency))
+    except AttributeError:
+        screen.config(text='Не удается соедениться с {}'.format(functional.port))
+
 def deviation_flag_click():
+    """ Флаг пропуска девиации """
     if off_deviation_flag.get():
         functional.check_deviation_time = 0
     else:
@@ -546,25 +284,43 @@ def deviation_flag_click():
 
 
 # Функции в верхнем меню
+def get_com_connect_info():
+    """ Получение информации о состоянии подключения COM порта """
+    connect = functional.connect_com_port(functional.COM)
+    if connect:
+        text = 'Соединение с {} установлено'.format(functional.COM)
+        color = 'blue4'
+    else:
+        text = 'Не удается соедениться с {}'.format(functional.COM)
+        color = 'red'
+    screen.config(text=text)
+    print_inscription(text='COM порт - {}'.format(functional.port), bg_color='gray95',
+                      text_color=color, x=190, y=410, width=100, height=20)
+
 def menu_com1_choice():
+    """ Подключение к COM 1 """
     functional.COM = 'COM1'
-    screen.config(text=functional.connect_com_port(functional.COM))
+    get_com_connect_info()
 
 def menu_com2_choice():
+    """ Подключение к COM 2 """
     functional.COM = 'COM2'
-    screen.config(text=functional.connect_com_port(functional.COM))
+    get_com_connect_info()
 
 def menu_com3_choice():
+    """ Подключение к COM 3 """
     functional.COM = 'COM3'
-    screen.config(text=functional.connect_com_port(functional.COM))
+    get_com_connect_info()
 
 def save_file():
-        name = filedialog.asksaveasfilename(filetypes=(('Excel', '*.xls'), ('Все файлы','*.*')))
-        if name != '':
-            functional.excel_book.save_book(name)
+    """ Сохранение параметров в файл Excel """
+    name = filedialog.asksaveasfilename(filetypes=(('Excel', '*.xls'), ('Все файлы','*.*')))
+    if name != '':
+        functional.excel_book.save_book(name)
 
 
 def init_interface():
+    """ Инициализация основного интерфейса программы """
     frame = tkinter.Frame(window, borderwidth=2, relief='groove', bg=COLOR)
     frame.place(x=10, y=10, width=1310, height=390)
     down_frame = tkinter.Frame(window, borderwidth=3, relief='groove', bg='snow3')
@@ -577,16 +333,16 @@ def init_interface():
     print_inscription(text='НЧ', x=630, y=190, width=160, height=15)
     print_inscription(text='ИЗМЕНЕНИЕ', x=1030, y=190, width=160, height=15)
 
-    print_inscription(text='Частота', x=190, y=440, width=100, height=30, color='snow3', justify=tkinter.LEFT)
-    print_inscription(text='Мощность', x=280, y=440, width=80, height=30, color='snow3', justify=tkinter.LEFT)
-    print_inscription(text='Отклонение', x=350, y=440, width=100, height=30, color='snow3', justify=tkinter.LEFT)
-    print_inscription(text='КНИ', x=435, y=440, width=70, height=30, color='snow3', justify=tkinter.LEFT)
-    print_inscription(text='ЧМ', x=495, y=440, width=70, height=30, color='snow3', justify=tkinter.LEFT)
+    print_inscription(text='Частота', x=190, y=440, width=100, height=30, bg_color='snow3', justify=tkinter.LEFT)
+    print_inscription(text='Мощность', x=280, y=440, width=80, height=30, bg_color='snow3', justify=tkinter.LEFT)
+    print_inscription(text='Отклонение', x=350, y=440, width=100, height=30, bg_color='snow3', justify=tkinter.LEFT)
+    print_inscription(text='КНИ', x=435, y=440, width=70, height=30, bg_color='snow3', justify=tkinter.LEFT)
+    print_inscription(text='ЧМ', x=495, y=440, width=70, height=30, bg_color='snow3', justify=tkinter.LEFT)
     print_inscription(text='Максимальная девиация', x=575, y=440, width=150, height=30,
-                      color='snow3', justify=tkinter.LEFT)
+                      bg_color='snow3', justify=tkinter.LEFT)
     print_inscription(text='Выходная мощьность', x=725, y=440, width=150, height=30,
-                      color='snow3', justify=tkinter.LEFT)
-    print_inscription(text='КНИ', x=875, y=440, width=70, height=30, color='snow3', justify=tkinter.LEFT)
+                      bg_color='snow3', justify=tkinter.LEFT)
+    print_inscription(text='КНИ', x=875, y=440, width=70, height=30, bg_color='snow3', justify=tkinter.LEFT)
 
     # Линии на приборе
     interface_lines = []
@@ -603,13 +359,15 @@ def init_interface():
 
 
 # Надписи
-def print_inscription(text, x, y, width, height, color=COLOR , justify=tkinter.CENTER):
-    inscription = tkinter.Label(window, text=text, bg=color, justify=justify)
+def print_inscription(text, x, y, width, height, bg_color=COLOR, text_color = '#000000', justify=tkinter.CENTER):
+    """ Печать текста (результаты проверка, надписи интерфейса, инструкции) """
+    inscription = tkinter.Label(window, text=text, bg=bg_color, foreground = text_color, justify=justify)
     inscription.place(x=x, y=y, width=width, height=height)
 
 
 # Верхнее меню
 def init_top_menu():
+    """ Инициализация верхнего меню """
     menu_item = tkinter.Menu(window)
     window.config(menu=menu_item)
     file_menu = tkinter.Menu(menu_item, tearoff=0)
@@ -628,6 +386,7 @@ def init_top_menu():
 
 
 def init_buttons():
+    """ Инициализация кнопок """
     button_width = 80
     button_height = 30
     x = 50
@@ -718,35 +477,48 @@ def init_buttons():
     button_Hz.place(x=x + 670, y=y - 50 * 2, width=button_width, height=button_height)
 
     # Нижнее меню
+    model_menu = tkinter.Menubutton(window, text='Выбор радиостанции', borderwidth=2, relief=tkinter.RAISED)
+    model_menu.pack()
+    model_menu.place(x=20, y=435, width=140, height=button_height)
+    model_menu.menu = tkinter.Menu(model_menu, tearoff=0)
+    model_menu['menu'] = model_menu.menu
+    model_menu.menu.add_command(label='Motorola\t\t\t\t\t\t', command=set_model_motorola)
+    model_menu.menu.add_command(label='Альтавия', command=set_model_altavia)
+    model_menu.menu.add_command(label='Icom', command=set_model_icom)
     check_rs_button = tkinter.Button(window, text='Проверка параметров',
                                        command=check_rs_button_click)
-    check_rs_button.place(x=20, y=435, width=140, height=button_height)
-    # Кнопку cancel нужно допилисть
+    check_rs_button.place(x=20, y=475, width=140, height=button_height)
     button_cancel = tkinter.Button(window, text='Отмена', command=button_cancel_click)
-    button_cancel.place(x=20, y=480, width=140, height=button_height)
+    button_cancel.place(x=20, y=520, width=140, height=button_height)
     # button_cancel.bind('<Button-1>', button_cancel_click)
     label_f = tkinter.Label(window, text='f:')
-    label_f.place(x=20, y=525, width=20, height=button_height)
-    get_frequency.place(x=40, y=525, width=120, height=30)
+    label_f.place(x=20, y=565, width=20, height=button_height)
+    get_frequency.place(x=40, y=565, width=120, height=30)
     get_frequency.bind('<Return>', get_frequency_button_click)
     get_frequency_button = tkinter.Button(window, text='Установить частоту',
                                           command=get_frequency_button_click)
-    get_frequency_button.place(x=20, y=565, width=140, height=button_height)
+    get_frequency_button.place(x=20, y=605, width=140, height=button_height)
     deviation_flag = tkinter.Checkbutton(window, text='Пропуск девиации', variable=off_deviation_flag,
                                          onvalue=True, offvalue=False, command=deviation_flag_click)
-    deviation_flag.place(x=20, y=605, width=140, height=button_height)
+    deviation_flag.place(x=20, y=645, width=140, height=button_height)
 
 
 if __name__ == '__main__':
     param_y = 440
-    functional = K2_functional()
-    functional.connect_com_port(functional.COM)
+    functional = k2_functional.K2_functional()
+    connect = functional.connect_com_port(functional.COM)
 
     window = tkinter.Tk()
-    window.title('К2-82 v 0.2 dev')
+    window.title('К2-82 v 0.2.1 dev')
     window.minsize(width=1330, height=770)
     get_frequency = tkinter.Entry(window, bd=2)
     off_deviation_flag = tkinter.BooleanVar()
+
+    color = 'blue4' if connect else 'red'
+    print_inscription(text='COM порт - {}'.format(functional.port), bg_color='gray95',
+                      text_color=color, x=190, y=410, width=100, height=20)
+    print_inscription(text='Модель - {}'.format(functional.model), bg_color = 'gray95',
+                      text_color = 'blue4', x=310, y=410, width=110, height=20)
 
     init_top_menu()
     init_interface()
