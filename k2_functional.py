@@ -22,6 +22,8 @@ class Import_to_Excel:
         """ Сохранение Excel документа """
         self.book.save(name + '.xls')
 
+
+
 class K2_functional:
 
     COM = 'COM2'

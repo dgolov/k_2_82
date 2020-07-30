@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import tkinter
-import check
-import k2_functional
+from tkinter import messagebox
+import check, k2_functional
 from tkinter import filedialog
 
 
@@ -318,6 +318,64 @@ def save_file():
     if name != '':
         functional.excel_book.save_book(name)
 
+def show_info():
+    """Меню справка - о программе"""
+    messagebox.showinfo('О программе',
+'''v 0.2.1 dev
+
+- Добавлена  возможность  выбора  модели радиостанции.
+(Нужно для  подставления  конкретных значений во время
+измерения  чувствительности  модуляционного входа, тем
+самым  ускоряя  процесс  проведения  цикла технического
+обслуживания)
+
+- Добавлено   отображение  состояния   COM  порта  (если
+ошибка  подключения,  то  текст подсвечивается  красным
+цветом) и отображение выбранной модели радиостанции
+(по умолчанию - Motorola)
+
+- Корректно считывает чувствительность  модуляционного
+входа
+
+- Считывает  правильные значения  выходной мощности и
+КНИ  приемника  с   К2-82.   (Бывает  скачок  на  приборе  и
+программа  могла  считать  некорректные значения после
+этого скачка)
+
+- Параметры  неудовлетворяющие  норме  подсвечиваются
+красным цветом
+
+-------------------------------------------------------------------------------
+
+Для запуска  цикла проверки  радиостанции:
+    - Деактивировать все кнопки на приборе
+    - Активировать  кнопку   ДУ на приборе
+    - Нажать  "Проверка  параметров"
+    - Следовать дальнейшим инструкциям
+
+После завершения цикла проверки необходимо измерить
+чувствительность   приёмника      и    порог  срабатывания
+шумоподавителя.
+
+Для  ускорения   цикла   проверки   активировать  пропуск
+девиации.  Для  быстрой  усановки  частоты с  компьютера
+ввести частоту в поле f:
+(например   151825   151.825   151,825)    и   нажать   кнопку
+"Установить    частоту".    Для   корректной   установки,   на
+приборе   должно  быть  активно   меню   редактирования
+сигнала    (либо     включены   кнопки   УСТ    и    ДУ,    либо
+отключены все кнопки кроме ДУ)
+
+Все кнопки в программе соответствуют кнопкам К2-82.
+
+-------------------------------------------------------------------------------
+
+
+                                                    Разработчик Голов Д.Е. ©
+                                                    ООО  "Телеком - Сервис"
+'''
+)
+
 
 def init_interface():
     """ Инициализация основного интерфейса программы """
@@ -358,14 +416,12 @@ def init_interface():
     interface_lines[5].place(x=12, y=380, width=horizontal_width, height=horizontal_height)
 
 
-# Надписи
 def print_inscription(text, x, y, width, height, bg_color=COLOR, text_color = '#000000', justify=tkinter.CENTER):
     """ Печать текста (результаты проверка, надписи интерфейса, инструкции) """
     inscription = tkinter.Label(window, text=text, bg=bg_color, foreground = text_color, justify=justify)
     inscription.place(x=x, y=y, width=width, height=height)
 
 
-# Верхнее меню
 def init_top_menu():
     """ Инициализация верхнего меню """
     menu_item = tkinter.Menu(window)
@@ -380,9 +436,15 @@ def init_top_menu():
     file_menu.add_command(label='Сохранить', command=save_file)
     com_port_menu = tkinter.Menu(settings_menu, tearoff=0)
     settings_menu.add_cascade(label='COM port', menu=com_port_menu)
+    model_menu = tkinter.Menu(settings_menu, tearoff=0)
+    settings_menu.add_cascade(label='Выбор радиостанции', menu=model_menu)
     com_port_menu.add_command(label='COM1', command=menu_com1_choice)
     com_port_menu.add_command(label='COM2', command=menu_com2_choice)
     com_port_menu.add_command(label='COM3', command=menu_com3_choice)
+    model_menu.add_command(label='Motorola', command=set_model_motorola)
+    model_menu.add_command(label='Альтавия', command=set_model_altavia)
+    model_menu.add_command(label='Icom', command=set_model_icom)
+    help_menu.add_command(label='О программе', command=show_info)
 
 
 def init_buttons():
@@ -519,6 +581,8 @@ if __name__ == '__main__':
                       text_color=color, x=190, y=410, width=100, height=20)
     print_inscription(text='Модель - {}'.format(functional.model), bg_color = 'gray95',
                       text_color = 'blue4', x=310, y=410, width=110, height=20)
+    # print_inscription(text='Разработчик Голов Д.Е. ©', bg_color = 'gray95', text_color = 'blue4',
+    #                  x=1150, y=742, width=140, height=20)
 
     init_top_menu()
     init_interface()
