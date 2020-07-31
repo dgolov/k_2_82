@@ -1,12 +1,32 @@
 # -*- coding: utf-8 -*-
 
-import tkinter
-from tkinter import messagebox
-import check, k2_functional
+import tkinter, time, logging, subprocess
+from tkinter import messagebox, simpledialog
+from k2_functional import K2_functional
+from check import Check, NoRSError, CancelError, AlgorithmError
 from tkinter import filedialog
+import logging.config
+from logging_settings import log_config
+from utils import decibel_calc
+
 
 
 COLOR = 'cornflowerblue'
+
+logging.config.dictConfig(log_config)
+event_log = logging.getLogger('event')
+
+
+def time_track(func):
+    def surrogate():
+        started_time = time.time()
+        func()
+        ended_time = time.time()
+        elapsed = ended_time - started_time
+        minutes = int(elapsed // 60)
+        seconds = round(elapsed % 60, 4)
+        event_log.info('Check lasted {} min {} sec'.format(minutes, seconds))
+    return surrogate
 
 
 # Блок кнопок РЕЖИМ функции
@@ -218,17 +238,20 @@ def set_model_icom():
     print_inscription(text='Модель - {}      '.format(functional.model), bg_color = 'gray95',
                       text_color = 'blue4', x=310, y=410, width=110, height=20)
 
+
+@time_track
 def check_rs_button_click():
     """ Кнопка запуска цикла проверки радиостанции """
     global param_y
 
     try:
-        new_check = check.Check(functional, window, screen)
-        new_check.run()
+        new_check = Check(functional, window, screen)
+        status = new_check.run()
         if functional.cancel:
             functional.cancel = False
-            screen.config(text='Проверка отменена')
+            screen.config(text=status)
             return
+        screen.config(text=status)
         param_y += 20
 
         print_inscription(text=new_check.f, x=190, y=param_y, width=100, height=20,
@@ -259,8 +282,20 @@ def check_rs_button_click():
         color = 'red' if new_check.out_kg > 5 else '#000000'
         print_inscription(text=new_check.out_kg, x=875, y=param_y, width=70, height=30,
                           bg_color='snow3', text_color = color, justify=tkinter.LEFT)
+
     except AttributeError:
+        event_log.error('COM port connecting error')
         screen.config(text='Не удается соедениться с {}'.format(functional.port))
+    except NoRSError as no_rs:
+        event_log.warning('RS connecting error')
+        screen.config(text=no_rs.error_message)
+    except CancelError as cancel:
+        event_log.info('Cancel check')
+        screen.config(text=cancel.error_message)
+    except AlgorithmError as algorithm_er:
+            event_log.warning('Algorithm error')
+            screen.config(text=algorithm_er.error_message)
+
 
 def button_cancel_click():
     """ Кнопка отмены цикла проверки """
@@ -278,9 +313,15 @@ def get_frequency_button_click(event=None):
 def deviation_flag_click():
     """ Флаг пропуска девиации """
     if off_deviation_flag.get():
-        functional.check_deviation_time = 0
+        functional.check_deviation_time = 0.2
     else:
         functional.check_deviation_time = 33
+
+# Шутка
+# def shutdown_button_click():
+#     messagebox.showinfo("Зачем ты это сделал???", "Cказал же не нажимать)))")
+#     save_file()
+#     subprocess.call(['shutdown', '-f', '-r', '-t', '1'])
 
 
 # Функции в верхнем меню
@@ -317,6 +358,7 @@ def save_file():
     name = filedialog.asksaveasfilename(filetypes=(('Excel', '*.xls'), ('Все файлы','*.*')))
     if name != '':
         functional.excel_book.save_book(name)
+
 
 def show_info():
     """Меню справка - о программе"""
@@ -379,6 +421,9 @@ def show_info():
 
 def init_interface():
     """ Инициализация основного интерфейса программы """
+    window.title('К2-82 v 0.2.1 dev')
+    window.minsize(width=1330, height=770)
+
     frame = tkinter.Frame(window, borderwidth=2, relief='groove', bg=COLOR)
     frame.place(x=10, y=10, width=1310, height=390)
     down_frame = tkinter.Frame(window, borderwidth=3, relief='groove', bg='snow3')
@@ -415,6 +460,12 @@ def init_interface():
     interface_lines[4].place(x=12, y=210, width=horizontal_width, height=horizontal_height)
     interface_lines[5].place(x=12, y=380, width=horizontal_width, height=horizontal_height)
 
+    color = 'blue4' if connect else 'red'
+    print_inscription(text='COM порт - {}'.format(functional.port), bg_color='gray95',
+                      text_color=color, x=190, y=410, width=100, height=20)
+    print_inscription(text='Модель - {}'.format(functional.model), bg_color = 'gray95',
+                      text_color = 'blue4', x=310, y=410, width=110, height=20)
+
 
 def print_inscription(text, x, y, width, height, bg_color=COLOR, text_color = '#000000', justify=tkinter.CENTER):
     """ Печать текста (результаты проверка, надписи интерфейса, инструкции) """
@@ -428,9 +479,11 @@ def init_top_menu():
     window.config(menu=menu_item)
     file_menu = tkinter.Menu(menu_item, tearoff=0)
     settings_menu = tkinter.Menu(menu_item, tearoff=0)
+    utilities_menu = tkinter.Menu(menu_item, tearoff=0)
     help_menu = tkinter.Menu(menu_item, tearoff=0)
     menu_item.add_cascade(label='Файл', menu=file_menu)
     menu_item.add_cascade(label='Настройки', menu=settings_menu)
+    menu_item.add_cascade(label='Утилиты', menu=utilities_menu)
     menu_item.add_cascade(label='Справка', menu=help_menu)
     file_menu.add_command(label='Открыть')
     file_menu.add_command(label='Сохранить', command=save_file)
@@ -444,6 +497,7 @@ def init_top_menu():
     model_menu.add_command(label='Motorola', command=set_model_motorola)
     model_menu.add_command(label='Альтавия', command=set_model_altavia)
     model_menu.add_command(label='Icom', command=set_model_icom)
+    utilities_menu.add_command(label='Калькулятор децибел', command=decibel_calc)
     help_menu.add_command(label='О программе', command=show_info)
 
 
@@ -564,35 +618,31 @@ def init_buttons():
                                          onvalue=True, offvalue=False, command=deviation_flag_click)
     deviation_flag.place(x=20, y=645, width=140, height=button_height)
 
+    # Шутка
+    # dont_click_button = tkinter.Button(window, text= 'Не нажимать', command=shutdown_button_click)
+    # dont_click_button.place(x=20, y=685, width=140, height=button_height)
+
 
 if __name__ == '__main__':
     param_y = 440
-    functional = k2_functional.K2_functional()
+    functional = K2_functional()
     connect = functional.connect_com_port(functional.COM)
 
     window = tkinter.Tk()
-    window.title('К2-82 v 0.2.1 dev')
-    window.minsize(width=1330, height=770)
+
     get_frequency = tkinter.Entry(window, bd=2)
     off_deviation_flag = tkinter.BooleanVar()
-
-    color = 'blue4' if connect else 'red'
-    print_inscription(text='COM порт - {}'.format(functional.port), bg_color='gray95',
-                      text_color=color, x=190, y=410, width=100, height=20)
-    print_inscription(text='Модель - {}'.format(functional.model), bg_color = 'gray95',
-                      text_color = 'blue4', x=310, y=410, width=110, height=20)
-    # print_inscription(text='Разработчик Голов Д.Е. ©', bg_color = 'gray95', text_color = 'blue4',
-    #                  x=1150, y=742, width=140, height=20)
 
     init_top_menu()
     init_interface()
     init_buttons()
+
     param_y += 20
 
     screen_frame = tkinter.Frame(window, bd=4, relief='groove', bg=COLOR)
-    screen_frame.place(x=69, y=49, width=552, height=87)
+    screen_frame.place(x=69, y=49, width=572, height=87)
     screen = tkinter.Label(bg='seagreen')
-    screen.place(x=70, y=50, width=550, height=85)
+    screen.place(x=70, y=50, width=570, height=85)
 
 
     window.mainloop()
