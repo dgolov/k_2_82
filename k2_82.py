@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
+# Use python 3.8
 
-import tkinter, time, logging, subprocess
-from tkinter import messagebox, simpledialog
-from k2_functional import K2_functional
+import tkinter, time
+from tkinter import messagebox
+from k2_functional import K2Functional
 from check import Check, NoRSError, CancelError, AlgorithmError
 from tkinter import filedialog
-import logging.config
-from logging_settings import log_config
+from logging_settings import event_log
 from utils import decibel_calc
+from settings import COLOR, SCREEN_COLOR
 
 
-
-COLOR = 'cornflowerblue'
-
-logging.config.dictConfig(log_config)
-event_log = logging.getLogger('event')
 
 
 def time_track(func):
+    """
+    Обёртка функции расчитывающая её время работы для записи в лог-журнал
+    :param func - оборачиваемая функция время работы которой нужно посчитать
+    """
     def surrogate():
         started_time = time.time()
         func()
@@ -32,39 +32,39 @@ def time_track(func):
 # Блок кнопок РЕЖИМ функции
 def mode_ust_click():
     text = 'УСТ'
-    result = functional.send_code(commande=text, code=b'0x23')
+    result = functional.send_code(command=text, code=b'0x23')
     screen.config(text=result)
 
 def mode_du_click():
     text = 'ДУ'
-    result = functional.send_code(commande=text, code=b'0x24')
+    result = functional.send_code(command=text, code=b'0x24')
     screen.config(text=result)
 
 def mode_20w_click():
     text = '20W'
-    result = functional.send_code(commande=text, code=b'0x25')
+    result = functional.send_code(command=text, code=b'0x25')
     screen.config(text=result)
 
 def mode_write_click():
     text = 'ЗАПИСЬ'
-    result = functional.send_code(commande=text, code=b'0x22')
+    result = functional.send_code(command=text, code=b'0x22')
     screen.config(text=result)
 
 def mode_read_click():
     text = 'ВЫВОД'
-    result = functional.send_code(commande=text, code=b'0x21')
+    result = functional.send_code(command=text, code=b'0x21')
     screen.config(text=result)
 
 
 # ВЧ блок кнопок функции
 def high_frequency_click():
     text = 'ВЧ ЧАСТ'
-    result = functional.send_code(commande=text, code=b'0x26')
+    result = functional.send_code(command=text, code=b'0x26')
     screen.config(text=result)
 
 def high_chm_click():
     text = 'ВЧ ЧМ'
-    result = functional.send_code(commande=text, code=b'0x27')
+    result = functional.send_code(command=text, code=b'0x27')
     screen.config(text=result)
 
 def high_dop1_click():
@@ -72,150 +72,150 @@ def high_dop1_click():
 
 def high_pow_click():
     text = 'МОЩН'
-    result = functional.send_code(commande=text, code=b'0x29')
+    result = functional.send_code(command=text, code=b'0x29')
     screen.config(text=result)
 
 def high_chm_off_click():
     text = 'ВЧ ЧМ ОТКЛ'
-    result = functional.send_code(commande=text, code=b'0x30')
+    result = functional.send_code(command=text, code=b'0x30')
     screen.config(text=result)
 
 
 # НЧ блок кнопок функции
 def low_frequency_click():
     text = 'НЧ ЧАСТ'
-    result = functional.send_code(commande=text, code=b'0x31')
+    result = functional.send_code(command=text, code=b'0x31')
     screen.config(text=result)
 
 def low_kg_click():
     text = 'НЧ КГ'
-    result = functional.send_code(commande=text, code=b'0x32')
+    result = functional.send_code(command=text, code=b'0x32')
     screen.config(text=result)
 
 def low_dop2_click():
     text = 'НЧ ДОП2'
-    result = functional.send_code(commande=text, code=b'0x33')
+    result = functional.send_code(command=text, code=b'0x33')
     screen.config(text=result)
 
 def low_voltage_click():
     text = 'НЧ НАПР'
-    result = functional.send_code(commande=text, code=b'0x34')
+    result = functional.send_code(command=text, code=b'0x34')
     screen.config(text=result)
 
 def low_chm_ext_click():
     text = 'НЧ ЧМ ВНЕШН'
-    result = functional.send_code(commande=text, code=b'0x35')
+    result = functional.send_code(command=text, code=b'0x35')
     screen.config(text=result)
 
 
 # Блок стрелок ИЗМЕНЕНИЕ
 def button_up_click():
     text = 'ВВЕРХ'
-    result = functional.send_code(commande=text, code=b'0x16')
+    result = functional.send_code(command=text, code=b'0x16')
     screen.config(text=result)
 
 def button_down_click():
     text = 'ВНИЗ'
-    result = functional.send_code(commande=text, code=b'0x17')
+    result = functional.send_code(command=text, code=b'0x17')
     screen.config(text=result)
 
 def button_left_click():
     text = 'ВЛЕВО'
-    result = functional.send_code(commande=text, code=b'0x18')
+    result = functional.send_code(command=text, code=b'0x18')
     screen.config(text=result)
 
 def button_right_click():
     text = 'ВПРАВО'
-    result = functional.send_code(commande=text, code=b'0x19')
+    result = functional.send_code(command=text, code=b'0x19')
     screen.config(text=result)
 
 def disconnect_button_click():
     text = 'ОТКЛ'
-    result = functional.send_code(commande=text, code=b'0x20')
+    result = functional.send_code(command=text, code=b'0x20')
     screen.config(text=result)
 
 def input_button_click():
     text = 'ВВОД'
-    result = functional.send_code(commande=text, code=b'0x15')
+    result = functional.send_code(command=text, code=b'0x15')
     screen.config(text=result)
 
 
 # Цифровая клавиатура функции
 def button_1_click():
     text = '1'
-    result = functional.send_code(commande=text, code=b'0x01')
+    result = functional.send_code(command=text, code=b'0x01')
     screen.config(text=result)
 
 def button_2_click():
     text = '2'
-    result = functional.send_code(commande=text, code=b'0x02')
+    result = functional.send_code(command=text, code=b'0x02')
     screen.config(text=result)
 
 def button_3_click():
     text = '3'
-    result = functional.send_code(commande=text, code=b'0x03')
+    result = functional.send_code(command=text, code=b'0x03')
     screen.config(text=result)
 
 def button_4_click():
     text = '4'
-    result = functional.send_code(commande=text, code=b'0x04')
+    result = functional.send_code(command=text, code=b'0x04')
     screen.config(text=result)
 
 def button_5_click():
     text = '5'
-    result = functional.send_code(commande=text, code=b'0x05')
+    result = functional.send_code(command=text, code=b'0x05')
     screen.config(text=result)
 
 def button_6_click():
     text = '6'
-    result = functional.send_code(commande=text, code=b'0x06')
+    result = functional.send_code(command=text, code=b'0x06')
     screen.config(text=result)
 
 def button_7_click():
     text = '7'
-    result = functional.send_code(commande=text, code=b'0x07')
+    result = functional.send_code(command=text, code=b'0x07')
     screen.config(text=result)
 
 def button_8_click():
     text = '8'
-    result = functional.send_code(commande=text, code=b'0x08')
+    result = functional.send_code(command=text, code=b'0x08')
     screen.config(text=result)
 
 def button_9_click():
     text = '9'
-    result = functional.send_code(commande=text, code=b'0x09')
+    result = functional.send_code(command=text, code=b'0x09')
     screen.config(text=result)
 
 def button_0_click():
     text = '0'
-    result = functional.send_code(commande=text, code=b'0x00')
+    result = functional.send_code(command=text, code=b'0x00')
     screen.config(text=result)
 
 def button_point_click():
     text = '.'
-    result = functional.send_code(commande=text, code=b'0x10')
+    result = functional.send_code(command=text, code=b'0x10')
     screen.config(text=result)
 
 def button_line_click():
     text = '-'
-    result = functional.send_code(commande=text, code=b'0x11')
+    result = functional.send_code(command=text, code=b'0x11')
     screen.config(text=result)
 
 
 # Множетели
-def button_MHz_click():
+def button_mhz_click():
     text = 'V/MHz'
-    result = functional.send_code(commande=text, code=b'0x12')
+    result = functional.send_code(command=text, code=b'0x12')
     screen.config(text=result)
 
-def button_kHz_click():
+def button_khz_click():
     text = 'mV/kHz'
-    result = functional.send_code(commande=text, code=b'0x13')
+    result = functional.send_code(command=text, code=b'0x13')
     screen.config(text=result)
 
-def button_Hz_click():
+def button_hz_click():
     text = 'uV/Hz'
-    result = functional.send_code(commande=text, code=b'0x14')
+    result = functional.send_code(command=text, code=b'0x14')
     screen.config(text=result)
 
 
@@ -303,11 +303,15 @@ def button_cancel_click():
         functional.cancel = True
 
 def get_frequency_button_click(event=None):
-    """ Кнопка установки частоты на К2-82 """
+    """
+    Кнопка установки частоты на К2-82
+    :param event - событие отмены, кнопка с клавиатуры
+    """
     try:
         frequency = get_frequency.get()
         screen.config(text=functional.input_frequency(frequency))
     except AttributeError:
+        event_log.error('COM port connecting error')
         screen.config(text='Не удается соедениться с {}'.format(functional.port))
 
 def deviation_flag_click():
@@ -327,8 +331,8 @@ def deviation_flag_click():
 # Функции в верхнем меню
 def get_com_connect_info():
     """ Получение информации о состоянии подключения COM порта """
-    connect = functional.connect_com_port(functional.COM)
-    if connect:
+    is_connect = functional.connect_com_port(functional.COM)
+    if is_connect:
         text = 'Соединение с {} установлено'.format(functional.COM)
         color = 'blue4'
     else:
@@ -363,29 +367,11 @@ def save_file():
 def show_info():
     """Меню справка - о программе"""
     messagebox.showinfo('О программе',
-'''v 0.2.1 dev
+'''v 0.2.2 dev
 
-- Добавлена  возможность  выбора  модели радиостанции.
-(Нужно для  подставления  конкретных значений во время
-измерения  чувствительности  модуляционного входа, тем
-самым  ускоряя  процесс  проведения  цикла технического
-обслуживания)
-
-- Добавлено   отображение  состояния   COM  порта  (если
-ошибка  подключения,  то  текст подсвечивается  красным
-цветом) и отображение выбранной модели радиостанции
-(по умолчанию - Motorola)
-
-- Корректно считывает чувствительность  модуляционного
-входа
-
-- Считывает  правильные значения  выходной мощности и
-КНИ  приемника  с   К2-82.   (Бывает  скачок  на  приборе  и
-программа  могла  считать  некорректные значения после
-этого скачка)
-
-- Параметры  неудовлетворяющие  норме  подсвечиваются
-красным цветом
+Автомотизированное проведение  технического
+обслуживания  с  использованием установки для
+измерения    параметров   радиостанций    К2-82
 
 -------------------------------------------------------------------------------
 
@@ -421,7 +407,7 @@ def show_info():
 
 def init_interface():
     """ Инициализация основного интерфейса программы """
-    window.title('К2-82 v 0.2.1 dev')
+    window.title('К2-82 v 0.2.2 dev')
     window.minsize(width=1330, height=770)
 
     frame = tkinter.Frame(window, borderwidth=2, relief='groove', bg=COLOR)
@@ -468,7 +454,17 @@ def init_interface():
 
 
 def print_inscription(text, x, y, width, height, bg_color=COLOR, text_color = '#000000', justify=tkinter.CENTER):
-    """ Печать текста (результаты проверка, надписи интерфейса, инструкции) """
+    """
+    Печать текста (результаты проверка, надписи интерфейса, инструкции)
+    :param text - текст выводимого сообщения
+    :param x - координата х выводимого сообщения
+    :param y - координата у выводимго сообщения
+    :param width - ширина выводимого сообщения
+    :param height - длинна выводимого сообщения
+    :param bg_color - цвет фона выводимого сообщения (по умолчанию цвет интерфейса К2-82)
+    :param text_color - цвет текста выводимого сообщения (по умолчанию черный)
+    :param justify - выравнивание выводимого сообщения (по умолчанию по центру)
+    """
     inscription = tkinter.Label(window, text=text, bg=bg_color, foreground = text_color, justify=justify)
     inscription.place(x=x, y=y, width=width, height=height)
 
@@ -502,7 +498,7 @@ def init_top_menu():
 
 
 def init_buttons():
-    """ Инициализация кнопок """
+    """ Инициализация кнопок на интерфейсе прибора"""
     button_width = 80
     button_height = 30
     x = 50
@@ -585,11 +581,11 @@ def init_buttons():
     button_6.place(x=x + 820, y=y - 50 * 4, width=button_width, height=button_height)
 
     # Множетели частот и напряжения Мега/Кило/Герцы и Милли/Микро/Вольты
-    button_MHz = tkinter.Button(window, text='V/MHz', command=button_MHz_click)
+    button_MHz = tkinter.Button(window, text='V/MHz', command=button_mhz_click)
     button_MHz.place(x=x + 670, y=y - 50 * 4, width=button_width, height=button_height)
-    button_kHz = tkinter.Button(window, text='mV/kHz', command=button_kHz_click)
+    button_kHz = tkinter.Button(window, text='mV/kHz', command=button_khz_click)
     button_kHz.place(x=x + 670, y=y - 50 * 3, width=button_width, height=button_height)
-    button_Hz = tkinter.Button(window, text='uV/Hz', command=button_Hz_click)
+    button_Hz = tkinter.Button(window, text='uV/Hz', command=button_hz_click)
     button_Hz.place(x=x + 670, y=y - 50 * 2, width=button_width, height=button_height)
 
     # Нижнее меню
@@ -625,7 +621,7 @@ def init_buttons():
 
 if __name__ == '__main__':
     param_y = 440
-    functional = K2_functional()
+    functional = K2Functional()
     connect = functional.connect_com_port(functional.COM)
 
     window = tkinter.Tk()
@@ -641,7 +637,7 @@ if __name__ == '__main__':
 
     screen_frame = tkinter.Frame(window, bd=4, relief='groove', bg=COLOR)
     screen_frame.place(x=69, y=49, width=572, height=87)
-    screen = tkinter.Label(bg='seagreen')
+    screen = tkinter.Label(bg=SCREEN_COLOR)
     screen.place(x=70, y=50, width=570, height=85)
 
 

@@ -3,8 +3,13 @@ import math, tkinter
 
 
 def decibel_calc():
-
+    """
+    Дополнительная фича к основной программе
+    Конвертор децибел в пазы и наоборот
+    Открывает дополнительное окно в программе
+    """
     def tm_to_db():
+        """Разы в Дб"""
         data = get_tm.get()
 
         if ',' in data:
@@ -18,6 +23,7 @@ def decibel_calc():
         get_db.insert(0, str(db))
 
     def db_to_tm():
+        """Дб в разы"""
         data = get_db.get()
 
         if ',' in data:
@@ -37,6 +43,7 @@ def decibel_calc():
     width = 150
     height = 30
 
+    # Дополнительное окно программы
     calc = tkinter.Tk()
     calc.title('Калькулятор децибел')
     calc.minsize(width=390, height=170)

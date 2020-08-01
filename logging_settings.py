@@ -1,3 +1,8 @@
+# Настройки логирования
+
+import logging
+import logging.config
+
 log_config = {
     "version": 1,
     "formatters": {
@@ -19,3 +24,6 @@ log_config = {
         }
     },
 }
+
+logging.config.dictConfig(log_config)
+event_log = logging.getLogger('event')

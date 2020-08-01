@@ -1,3 +1,5 @@
+# Настройки для сборки программы в файл exe
+
 from cx_Freeze import setup, Executable
 import sys, os, xlwt
 

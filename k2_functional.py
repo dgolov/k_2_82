@@ -2,29 +2,48 @@ import serial, time
 import xlwt
 
 
-class Import_to_Excel:
+class ImportToExcel:
+    """
+    Класс для выгрузки результатов проверки радиостанции в Excel документ для
+    дальнейшего копирования в ведомость
+    * Создание Excel файла и запись в него результатов
+    * Сохранение Excel файла под указанным именем в заданную директорию пользователем
+    """
 
     def __init__(self):
-        self.colls = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
+        self.cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
         self.book = xlwt.Workbook(encoding='utf8')
         self.sheet = self.book.add_sheet('Sheet')
         self.line = 0
 
     def write_book(self, *args):
-        """ Запись параметров в Excel документ """
+        """
+        Запись результатов проверки в Excel документ
+        :param args - упакованные результаты проверки радиостанции
+        """
         row = self.sheet.row(self.line)
-        for index, col in enumerate(self.colls):
+        for index, col in enumerate(self.cols):
             value = args[index]
             row.write(index, value)
         self.line += 1
 
     def save_book(self, name):
-        """ Сохранение Excel документа """
+        """
+        Сохранение Excel документа
+        :param name - имя сохраняемого Excel файла
+        """
         self.book.save(name + '.xls')
 
 
 
-class K2_functional:
+class K2Functional:
+    """
+    Класс основного функционала приставки К2-82
+    * Соединение с ком портом
+    * Отправка команды на К2-82
+    * Установка частоты на К2-82
+    * Отправка числовых значений на К2-82
+    """
 
     COM = 'COM2'
     model = 'Motorola'
@@ -34,13 +53,16 @@ class K2_functional:
         self.check_deviation_time = 33
         self.cancel = False
         self.check = False
-        self.excel_book = Import_to_Excel()
+        self.com = None
+        self.excel_book = ImportToExcel()
 
 
     def connect_com_port(self, port):
-        """ Соединение с COM портом """
+        """
+        Соединение с COM портом
+        :param port - название ком порта
+        """
         self.port = port
-        self.com = None
         try:
             self.com = serial.Serial(port, 9600, timeout=1)
             return True
@@ -48,12 +70,16 @@ class K2_functional:
             return False
 
 
-    def send_code(self, code, commande=None):
-        """ Отправка команды на COM порт """
+    def send_code(self, code, command=None):
+        """
+        Отправка команды на COM порт
+        :param code - ASCII код отправляемый на прибор
+        :param command - указание нужно ли отображать на дисплее что команда отправлена
+        """
         try:
             self.com.write(code)
-            if commande:
-                return  "Команда '{}' отправлена на {}".format(commande, self.com.port)
+            if command:
+                return  "Команда '{}' отправлена на {}".format(command, self.com.port)
         except serial.SerialException:
             return 'Не удается соедениться с ' + self.com.port
         except (NameError, AttributeError):
@@ -61,7 +87,10 @@ class K2_functional:
 
 
     def input_frequency(self, f):
-        """ Установка заданной частоты на К2-82 """
+        """
+        Установка заданной частоты на К2-82
+        :param f - частота
+        """
         error_message = 'Введите корректную частоту (например 151.825 или 151825)'
 
         if len(f) == 3:
@@ -84,7 +113,10 @@ class K2_functional:
 
 
     def numbers_entry(self, char):
-        """ Отправка числовых значений (цифровая клавиатура на К2-82) """
+        """
+        Отправка числовых значений (цифровая клавиатура на К2-82)
+        :param char - число которое вводим на К2-82
+        """
         if char == '1':
             self.send_code(b'0x01')
         elif char == '2':
