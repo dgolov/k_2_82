@@ -63,6 +63,8 @@ class K2Functional:
         :param port - название ком порта
         """
         self.port = port
+        self.com = None
+
         try:
             self.com = serial.Serial(port, 9600, timeout=1)
             return True

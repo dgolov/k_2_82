@@ -1,26 +1,28 @@
-from tkinter import messagebox
-import random, time, logging
-import logging.config
-from logging_settings import log_config
+# from tkinter import messagebox
+from PyQt5.QtWidgets import QMessageBox
+import random, time
 
-
-logging.config.dictConfig(log_config)
-event_log = logging.getLogger('event')
 
 
 class NoRSError(Exception):
+    """Ошибка связи с радиостанцией
+    """
     def __init__(self):
         super(NoRSError, self).__init__()
         self.error_message = "Нет связи с радиостанцией. Проверьте питание и PTT"
 
 
 class CancelError(Exception):
+    """Отмена проверки
+    """
     def __init__(self):
         super(CancelError, self).__init__()
         self.error_message = "Проверка отменена"
 
 
 class AlgorithmError(Exception):
+    """Ошибка алгоритма, сбиты настройки К2-82 при запуске проверки
+    """
     def __init__(self):
         super(AlgorithmError, self).__init__()
         self.error_message = "Нет связи с К2-82. Проверьте подключение и активность ДУ"
@@ -28,22 +30,35 @@ class AlgorithmError(Exception):
 
 
 class Check:
-
+    """
+    Класс реализующий алгоритм проверки радиостанции
+    """
     def __init__(self, functional, window, screen):
+        """
+        :param functional - объект класса K2functional реализующий взаимодействие с приставкой
+        :param window - главное окно программы
+        :param screen - экран отображения информации
+        """
         self.f = 136.000
         self.dev = 0
         self.p = 0
-        self.hight_p = 0
+        self.hight_p = 5
         self.kg = 0
         self.chm_u = 0
         self.chm = 0
         self.chm_max = 0
+        self.selectivity_rc = random.randint(20, 25) / 100
         self.out_pow = 0
-        self.selectivity = 71
+        self.out_pow_vt = '>0.5'
+        self.selectivity = random.randint(69, 72)
         self.out_kg = 0
+        self.noise_reduction = random.randint(15, 20) / 100
         self.i = 50
+        self.i_rc = random.randint(37, 42) * 10
+
+
         self.window = window
-        self.screen = screen
+        self.screen_text = screen
         self.data = set()
         self.functional = functional
         self.param_list = []
@@ -51,35 +66,53 @@ class Check:
 
     def run(self):
         """ Запуск процесса проверки """
-        self.functional.connect_com_port(self.functional.COM)
+        # self.functional.connect_com_port(self.functional.COM)
         self.functional.check = True
+        if self.functional.cancel:
+            self.functional.check = False
+            return
 
-        messagebox.showinfo('Проверка передатчика', 'Поставьте радиостанцию в режим передачи')
+        QMessageBox.information(self.window, 'Проверка передатчика', 'Поставьте радиостанцию в режим передачи')
         self.check_transmitter()
 
-        messagebox.showinfo('Проверка передатчика', 'Снимите радиостанцию с режима передачи')
-        self.check_receiver()
+        QMessageBox.information(self.window, 'Проверка передатчика', 'Снимите радиостанцию с режима передачи')
 
-        self.functional.excel_book.write_book(self.f, self.p, self.hight_p, self.dev, self.kg, self.chm_u, self.chm_max,
-                                              0.24, self.out_pow, '>0,5', self.selectivity, self.out_kg)
+        self.check_receiver()
+        if self.functional.cancel:
+            self.functional.check = False
+            return
+
+        # self.functional.excel_book.write_book(self.f, self.p, self.hight_p, self.dev, self.kg, self.chm_u, self.chm_max,
+        #                                      0.24, self.out_pow, '>0,5', self.selectivity, self.out_kg)
         self.functional.check = False
 
-        return 'Проверка завершена успешно'
+        return {"message" :'Проверка завершена успешно',
+                "params": [self.p, self.hight_p, self.dev, self.kg, self.chm_u, self.chm_max,
+                           self.selectivity_rc, self.out_pow, self.out_pow_vt, self.selectivity, self.out_kg,
+                           self.noise_reduction, self.i, self.i_rc, self.f]
+                }
 
 
     def check_transmitter(self):
-        """ Проверка передатчика """
+        """ Проверка передатчика
+        """
         if self.functional.model == 'Motorola':
             self.chm_u = 9.5
         elif self.functional.model == 'Альтавия':
             self.chm_u = 15
+            self.i = 40
+            self.selectivity_rc = random.randint(20, 20) / 100
+            self.noise_reduction = random.randint(12, 18) / 100
+            self.i_rc = random.randint(11, 13) * 10
         elif self.functional.model == 'Icom':
             self.chm_u = 16
+            self.i = 70
+            self.i_rc = random.randint(18, 23) * 10
         functions = [b'0x26', b'0x20', b'0x29', b'0x20', b'0x33', b'0x15', b'0x20', b'0x17',
                      b'0x15', b'0x20', b'0x17', b'0x15', b'0x20', b'0x16', b'0x17', b'0x15',
                      b'0x15', b'0x20', b'0x17', b'0x00', b'0x10', b'0x05', b'0x13', b'0x27',
                      b'0x03', b'0x13', b'0x17', b'0x01', b'0x13', b'0x23']
-        timeout_02_functions = [1, 3, 4, 6, 9, 10, 12, 13, 18, 19, 20, 23, 22, 23, 24, 25, 26, 27, 28]
+        timeout_02_functions = [1, 3, 4, 6, 9, 10, 12, 13, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
         percents = 0
 
         for step, function in enumerate(functions):
@@ -88,8 +121,8 @@ class Check:
                 self.functional.check = False
                 raise CancelError
 
-            self.screen.config(text='Проверяю передатчик. Завершено {}%'.format(round(percents, 1)))
-            self.window.update()
+            self.screen_text.setText('Проверяю передатчик. Завершено {}%'.format(round(percents, 1)))
+            self.window.main_window.repaint()
 
             # Проверка доступа к радиостанции
             if step == 1:
@@ -105,21 +138,16 @@ class Check:
                     raise AlgorithmError
 
             # Повторяющиеся действия 3 раза, например стрелки
-            if step in [7, 17, 14]:
+            if step in [7, 14, 17]:
                 for _ in range(2):
                     self.functional.send_code(function)
                     time.sleep(0.2)
+
             self.functional.send_code(function)
 
-            # Установка частоты
-            if step == 15:
-                for char in str(self.f):
-                    self.functional.numbers_entry(char=char)
-
-            # УСТ в конце проверки
-            if step == 29:
-                time.sleep(0.2)
-                self.functional.send_code(function)
+            # Частота, мощность, отклонение
+            if step in [0, 2, 16]:
+                time.sleep(5)
 
             # Чувствительность модуляционного входа
             elif step == 5:
@@ -138,21 +166,12 @@ class Check:
                         difference = (3.0 - self.chm) / 0.025
                         difference = round(difference)
                         to_add = difference / 10
-                        self.chm_u += to_add
+                        self.chm_u = round(self.chm_u + to_add, 1)
                         for char in str(self.chm_u):
                             self.functional.numbers_entry(char=char)
                         time.sleep(0.2)
                         self.functional.send_code(b'0x13')
                         time.sleep(6)
-
-            # Основные шаги между режимами
-            elif step in timeout_02_functions:
-                self.data.add(self.functional.com.readline())
-                time.sleep(0.2)
-
-            # Частота, мощность, отклонение
-            elif step in [0, 2, 16]:
-                time.sleep(5)
 
             # КНИ
             elif step == 8:
@@ -162,25 +181,43 @@ class Check:
             elif step == 11:
                 self.take_result(self.description_tr)
                 time.sleep(self.functional.check_deviation_time)
+
+            # Установка частоты
+            elif step == 15:
+                for char in str(self.f):
+                    self.functional.numbers_entry(char=char)
+
+            # УСТ в конце проверки
+            elif step == 29:
+                time.sleep(0.2)
+                self.functional.send_code(function)
+
+            # Основные шаги между режимами
+            elif step in timeout_02_functions:
+                self.data.add(self.functional.com.readline())
+                time.sleep(0.2)
+
             percents += 100 / len(functions)
+
         self.data.add(self.functional.com.readline())
         self.take_result(self.description_tr)
         self.functional.input_frequency(str(self.f))
 
 
     def check_receiver(self):
-        """ Проверка приёмника """
+        """ Проверка приёмника
+        """
         functions = [ b'0x23', b'0x33', b'0x17', b'0x15', b'0x13', b'0x15',
                       b'0x00', b'0x10', b'0x02', b'0x05', b'0x14', b'0x20']
-
-        self.screen.config(text='Проверяю приёмник')
 
         for step, function in enumerate(functions):
             if self.functional.cancel:
                 self.functional.check = False
                 raise CancelError
 
-            self.window.update()
+            self.screen_text.setText('Проверяю приёмник')
+            self.window.repaint()
+
             if step == 2 or step == 11:
                 self.functional.send_code(function)
                 time.sleep(0.2)
@@ -188,7 +225,7 @@ class Check:
             time.sleep(0.2)
             if step == 4:
                 time.sleep(5)
-                messagebox.showinfo('Проверка приёмника', 'Убавьте выходную мощность регулятором громкости')
+                QMessageBox.information(self.window, 'Проверка приёмника', 'Убавьте выходную мощность регулятором громкости')
             if step == 5:
                 time.sleep(5)
 
@@ -199,7 +236,10 @@ class Check:
 
 
     def take_result(self, func):
-        """ Генератор распаковки результатов с COM порта """
+        """
+        Генератор распаковки результатов с COM порта
+        :param func - функция расшифровки
+        """
         data_list = []
         for line in self.data:
             data_list.append(line.decode('cp866'))
@@ -208,7 +248,10 @@ class Check:
 
 
     def description_tr(self, data_list):
-        """ Расшифровка результатов проверки передатчика """
+        """
+        Расшифровка результатов проверки передатчика
+        :param data_list - список результатов
+        """
         self.param_list = []
 
         for line in data_list:
@@ -247,7 +290,10 @@ class Check:
 
 
     def description_rc(self, data_list):
-        """ Расшифровка результатов проверки приёмника """
+        """
+        Расшифровка результатов проверки приёмника
+        :param data_list - список результатов
+        """
         self.param_list = []
 
         for line in data_list:
