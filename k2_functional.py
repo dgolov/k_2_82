@@ -1,3 +1,5 @@
+# Модуль с алгоритмом функционала приставки К2-82
+
 import serial, time
 import xlwt
 
@@ -55,6 +57,7 @@ class K2Functional:
         self.check = False
         self.com = None
         self.excel_book = ImportToExcel()
+        self.continue_thread = True
 
 
     def connect_com_port(self, port):

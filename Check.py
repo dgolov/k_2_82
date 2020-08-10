@@ -1,7 +1,8 @@
-# from tkinter import messagebox
-from PyQt5.QtWidgets import QMessageBox
-import random, time
+# Модуль аглгоритмов проверки радиостанции
 
+import random, time
+from logging_settings import event_log
+from PyQt5.QtCore import *
 
 
 class NoRSError(Exception):
@@ -20,25 +21,29 @@ class CancelError(Exception):
         self.error_message = "Проверка отменена"
 
 
-class AlgorithmError(Exception):
+class StartError(Exception):
     """Ошибка алгоритма, сбиты настройки К2-82 при запуске проверки
     """
     def __init__(self):
-        super(AlgorithmError, self).__init__()
+        super(StartError, self).__init__()
         self.error_message = "Нет связи с К2-82. Проверьте подключение и активность ДУ"
 
 
 
-class Check:
+class Check(QObject):
     """
     Класс реализующий алгоритм проверки радиостанции
     """
-    def __init__(self, functional, window, screen):
+    # runing = False
+    next_screen_text = pyqtSignal(str)
+    next_message_box = pyqtSignal(list)
+    check_status = pyqtSignal(dict)
+
+    def __init__(self, functional):
         """
         :param functional - объект класса K2functional реализующий взаимодействие с приставкой
-        :param window - главное окно программы
-        :param screen - экран отображения информации
         """
+        super().__init__()
         self.f = 136.000
         self.dev = 0
         self.p = 0
@@ -56,41 +61,61 @@ class Check:
         self.i = 50
         self.i_rc = random.randint(37, 42) * 10
 
-
-        self.window = window
-        self.screen_text = screen
         self.data = set()
         self.functional = functional
         self.param_list = []
 
 
-    def run(self):
-        """ Запуск процесса проверки """
-        # self.functional.connect_com_port(self.functional.COM)
-        self.functional.check = True
-        if self.functional.cancel:
+    @pyqtSlot()
+    def run(self, *args, **kwargs):
+        """ Запуск процесса проверки в отдельном потоке
+        """
+        # Засекаем время начала проверки проверки
+        started_time = time.time()
+        try:
+            self.functional.check = True
+
+            self.next_message_box.emit(['Проверка передатчика', 'Поставьте радиостанцию в режим передачи'])
+            time.sleep(0.5)
+            while not self.functional.continue_thread:
+                pass
+
+            self.check_transmitter()
+
+            self.next_message_box.emit(['Проверка передатчика', 'Снимите радиостанцию с режима передачи'])
+            time.sleep(0.5)
+            while not self.functional.continue_thread:
+                pass
+
+            self.check_receiver()
             self.functional.check = False
-            return
 
-        QMessageBox.information(self.window, 'Проверка передатчика', 'Поставьте радиостанцию в режим передачи')
-        self.check_transmitter()
+            # Засекаем время окончания, получаем общее время проверки, при успешном завершении логируем
+            ended_time = time.time()
+            elapsed = ended_time - started_time
+            minutes = int(elapsed // 60)
+            seconds = round(elapsed % 60, 4)
+            event_log.info('Check lasted {} min {} sec'.format(minutes, seconds))
 
-        QMessageBox.information(self.window, 'Проверка передатчика', 'Снимите радиостанцию с режима передачи')
+            self.check_status.emit({"message" :'Проверка завершена успешно',
+                    "params": [self.p, self.hight_p, self.dev, self.kg, self.chm_u, self.chm_max,
+                               self.selectivity_rc, self.out_pow, self.out_pow_vt, self.selectivity, self.out_kg,
+                               self.noise_reduction, self.i, self.i_rc, self.f]} )
 
-        self.check_receiver()
-        if self.functional.cancel:
-            self.functional.check = False
-            return
 
-        # self.functional.excel_book.write_book(self.f, self.p, self.hight_p, self.dev, self.kg, self.chm_u, self.chm_max,
-        #                                      0.24, self.out_pow, '>0,5', self.selectivity, self.out_kg)
-        self.functional.check = False
-
-        return {"message" :'Проверка завершена успешно',
-                "params": [self.p, self.hight_p, self.dev, self.kg, self.chm_u, self.chm_max,
-                           self.selectivity_rc, self.out_pow, self.out_pow_vt, self.selectivity, self.out_kg,
-                           self.noise_reduction, self.i, self.i_rc, self.f]
-                }
+        except AttributeError:
+            event_log.error('COM port connecting error')
+            self.check_status.emit({"message": 'Не удается соедениться с {}'.format(self.functional.port),
+                                   "params": None})
+        except NoRSError as no_rs:
+            event_log.warning('RS connecting error')
+            self.check_status.emit({"message": no_rs.error_message, "params": None})
+        except CancelError as cancel:
+            event_log.info('Cancel check')
+            self.check_status.emit({"message": cancel.error_message, "params": None})
+        except StartError as algorithm_er:
+            event_log.warning('Start check error')
+            self.check_status.emit({"message": algorithm_er.error_message, "params": None})
 
 
     def check_transmitter(self):
@@ -119,10 +144,10 @@ class Check:
             if self.functional.cancel:
                 self.functional.send_code(b'0x20')
                 self.functional.check = False
+                self.functional.cancel = False
                 raise CancelError
 
-            self.screen_text.setText('Проверяю передатчик. Завершено {}%'.format(round(percents, 1)))
-            self.window.main_window.repaint()
+            self.next_screen_text.emit('Проверяю передатчик. Завершено {}%'.format(round(percents, 1)))
 
             # Проверка доступа к радиостанции
             if step == 1:
@@ -135,7 +160,7 @@ class Check:
                 elif self.f == 136.0:
                     self.functional.send_code(b'0x20')
                     self.functional.check = False
-                    raise AlgorithmError
+                    raise StartError
 
             # Повторяющиеся действия 3 раза, например стрелки
             if step in [7, 14, 17]:
@@ -154,6 +179,7 @@ class Check:
                 for char in str(self.chm_u):
                     self.functional.numbers_entry(char=char)
                 time.sleep(0.2)
+                # for _ in range(2):
                 self.functional.send_code(b'0x13')
                 time.sleep(4)
                 while self.chm < 2.95 or self.chm > 3.05:
@@ -213,10 +239,10 @@ class Check:
         for step, function in enumerate(functions):
             if self.functional.cancel:
                 self.functional.check = False
+                self.functional.cancel = False
                 raise CancelError
 
-            self.screen_text.setText('Проверяю приёмник')
-            self.window.repaint()
+            self.next_screen_text.emit('Проверяю приёмник')
 
             if step == 2 or step == 11:
                 self.functional.send_code(function)
@@ -225,7 +251,10 @@ class Check:
             time.sleep(0.2)
             if step == 4:
                 time.sleep(5)
-                QMessageBox.information(self.window, 'Проверка приёмника', 'Убавьте выходную мощность регулятором громкости')
+                self.next_message_box.emit(['Проверка приёмника', 'Убавьте выходную мощность регулятором громкости'])
+                time.sleep(0.5)
+                while not self.functional.continue_thread:
+                    pass
             if step == 5:
                 time.sleep(5)
 

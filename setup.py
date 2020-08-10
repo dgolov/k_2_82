@@ -10,7 +10,7 @@ build_exe_options = {"packages": ["xlwt"]}
 
 setup(
     name = "k2_82",
-    version = "0.2.1",
+    version = "0.3.2",
     description = "k2_82",
     options = {"build_exe": build_exe_options},
     executables = [Executable("k2_82.py", base='Win32GUI')]
