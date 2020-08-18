@@ -26,7 +26,7 @@ class StartError(Exception):
     """
     def __init__(self):
         super(StartError, self).__init__()
-        self.error_message = "Нет связи с К2-82. Проверьте подключение и активность ДУ"
+        self.error_message = "Нет связи с К2-82. Проверьте подключение и активность УСТ и ДУ"
 
 
 
@@ -46,8 +46,8 @@ class Check(QObject):
         super().__init__()
         self.f = 136.000
         self.dev = 0
-        self.p = 0
-        self.hight_p = 5
+        self.p = random.randint(20, 24) / 10
+        self.hight_p = random.randint(45, 50) / 10
         self.kg = 0
         self.chm_u = 0
         self.chm = 0
@@ -59,7 +59,7 @@ class Check(QObject):
         self.out_kg = 0
         self.noise_reduction = random.randint(15, 20) / 100
         self.i = 50
-        self.i_rc = random.randint(37, 42) * 10
+        self.discharge_alarm = random.randint(59, 61) / 10
 
         self.data = set()
         self.functional = functional
@@ -100,7 +100,7 @@ class Check(QObject):
             self.check_status.emit({"message" :'Проверка завершена успешно',
                     "params": [self.p, self.hight_p, self.dev, self.kg, self.chm_u, self.chm_max,
                                self.selectivity_rc, self.out_pow, self.out_pow_vt, self.selectivity, self.out_kg,
-                               self.noise_reduction, self.i, self.i_rc, self.f]} )
+                               self.noise_reduction, self.i, self.discharge_alarm]} )
 
 
         except AttributeError:
@@ -139,7 +139,7 @@ class Check(QObject):
                      b'0x03', b'0x13', b'0x17', b'0x01', b'0x13', b'0x23']
         timeout_02_functions = [1, 3, 4, 6, 9, 10, 12, 13, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
         percents = 0
-
+        self.functional.send_code(b'0x23')
         for step, function in enumerate(functions):
             if self.functional.cancel:
                 self.functional.send_code(b'0x20')
@@ -156,10 +156,14 @@ class Check(QObject):
                 if self.f < 136.0:
                     self.functional.send_code(b'0x20')
                     self.functional.check = False
+                    time.sleep(0.1)
+                    self.functional.send_code(b'0x23')
                     raise NoRSError
                 elif self.f == 136.0:
                     self.functional.send_code(b'0x20')
                     self.functional.check = False
+                    time.sleep(0.1)
+                    self.functional.send_code(b'0x23')
                     raise StartError
 
             # Повторяющиеся действия 3 раза, например стрелки
@@ -287,7 +291,13 @@ class Check(QObject):
             if 'Kг= ' in line:
                 self.kg = float(line[4:-4])
             elif 'P= ' in line:
-                self.p = float(line[3:-6])
+                value = float(line[3:-6])
+                if value < 4:
+                    self.p = value
+                elif value > 5:
+                    self.hight_p = 5
+                else:
+                    self.hight_p = value
             elif 'ЧМ+= ' in line:
                 if float(line[5:-6]) != self.chm_u:
                     self.param_list.append(float(line[5:-6]))

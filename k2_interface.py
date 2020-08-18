@@ -38,7 +38,7 @@ class UiMainWindow(QMainWindow):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("images\\icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
         self.setWindowIcon(icon)
-        self.setWindowTitle("К2-82 v 0.3.2")
+        self.setWindowTitle("К2-82 v 0.3.3")
         self.functional.connect_com_port(self.functional.COM)
 
         # Задний фон
@@ -86,7 +86,8 @@ class UiMainWindow(QMainWindow):
         self.screen_text.setAlignment(QtCore.Qt.AlignCenter)
 
         # Надписи на приборе
-        label = QtWidgets.QLabel('Перед началом работы не забудь нажать кнопку ДУ на приборе.', self.k2_frame)
+        label = QtWidgets.QLabel('Перед началом работы не забудь активировать кнопки УСТ и ДУ на приборе.',
+                                 self.k2_frame)
         label.setGeometry(QtCore.QRect(60, 20, 700, 20))
         font = QtGui.QFont()
         font.setPointSize(9)
@@ -299,7 +300,7 @@ class UiMainWindow(QMainWindow):
         """
         #TODO реализовать сохранение параметров в ведомость (уже готовую)
         coll_names = ["№ РC", "P", "Выс. P", "Откл.", "КНИ", "ЧМ", "Max дев.", "Чувств.", "Вых. P",
-                            "Вых P.", "Избер.", "КНИ", "Шумодав", "Деж реж.", "I пр.", "I прд.", "Частота"]
+                            "Вых P.", "Избер.", "КНИ", "Шумодав", "Деж реж.", "I пр.", "I прд.", "Раздяд\nАКБ"]
         rows, cols = 20, 17
 
         self.result_table.setGeometry(QtCore.QRect(220, 480, 1281, 391))
@@ -634,8 +635,9 @@ class UiMainWindow(QMainWindow):
                 cell_info = QtWidgets.QTableWidgetItem(str(param).replace('.', ','))
                 self.result_table.setItem(self.row, col, cell_info)
                 col += 1
-                if col == 15:
-                    col += 1
+                if col == 14:
+                    col += 2
+
             self.row += 1
 
         self.thread.terminate()
@@ -735,8 +737,7 @@ class UiMainWindow(QMainWindow):
     -------------------------------------------------------------------------------
 
     Для запуска  цикла проверки  радиостанции необходимо:
-        - Деактивировать все кнопки на приборе
-        - Активировать  кнопку   ДУ на приборе
+        - Деактивировать все кнопки на приборе кроме УСТ и ДУ
         - Нажать  "Проверка  параметров"
         - Следовать дальнейшим инструкциям
 
