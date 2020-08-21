@@ -1,5 +1,5 @@
 # Модуль с алгоритмом функционала приставки К2-82
-
+import re
 import serial, time
 import xlwt
 
@@ -38,27 +38,11 @@ class ImportToExcel:
 
 
 
-class K2Functional:
-    """
-    Класс основного функционала приставки К2-82
-    * Соединение с ком портом
-    * Отправка команды на К2-82
-    * Установка частоты на К2-82
-    * Отправка числовых значений на К2-82
-    """
-
-    COM = 'COM2'
-    model = 'Motorola'
-
+class RSFunctional:
     def __init__(self):
         self.port = None
-        self.check_deviation_time = 33
-        self.cancel = False
-        self.check = False
         self.com = None
-        self.excel_book = ImportToExcel()
-        self.continue_thread = True
-
+        self._sn_pattern = r'672[a-zA-Z0-9]{7}'
 
     def connect_com_port(self, port):
         """
@@ -73,6 +57,58 @@ class K2Functional:
             return True
         except serial.SerialException:
             return False
+
+    def get_serial(self):
+        self.com.write(b'\xf2\x23\x01\xe9')
+        result = self.com.readline()
+        serial_number_in = result.decode('cp1251')
+        serial_number_format = re.search(self._sn_pattern, serial_number_in)
+
+        # Перевод радиостанции в обычный режим из режима тестирования
+        self.com.write(b'\xf1\x10\xfe')
+        self.com.close()
+
+        return str(serial_number_format[0])
+
+
+
+class K2Functional(RSFunctional):
+    """
+    Класс основного функционала приставки К2-82
+    * Соединение с ком портом
+    * Отправка команды на К2-82
+    * Установка частоты на К2-82
+    * Отправка числовых значений на К2-82
+    """
+
+    COM = 'COM2'
+    model = 'Motorola'
+
+    def __init__(self):
+        super(K2Functional, self).__init__()
+        #self.port = None
+        self.check_deviation_time = 33
+        self.cancel = False
+        self.check = False
+        #self.com = None
+        self.com_rs = None
+        self.excel_book = ImportToExcel()
+        self.continue_thread = True
+
+
+    # def connect_com_port(self, port):
+    #     """
+    #     Соединение с COM портом
+    #     :param port - название ком порта
+    #     """
+    #     self.port = port
+    #     self.com = None
+    #
+    #     try:
+    #         self.com = serial.Serial(port, 9600, timeout=1)
+    #         return True
+    #     except serial.SerialException:
+    #         return False
 
 
     def send_code(self, code, command=None):

@@ -6,10 +6,10 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QThread
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QAction, qApp, QMessageBox
 from PyQt5.QtGui import QIcon
-from k2_functional import K2Functional
+from functional import K2Functional
 from check import Check
 from logging_settings import event_log
-from utils import decibel_calc
+from utils import DecibelCalc
 
 
 
@@ -25,21 +25,22 @@ class UiMainWindow(QMainWindow):
         self.screen_text = QtWidgets.QLabel(self.screen_frame)
         self.row = 0
         self.result_table = QtWidgets.QTableWidget(self.main_window)
-        self.functional = K2Functional()
+        self.k2_functional = K2Functional()
         self.choice_of_the_model = QtWidgets.QComboBox(self.main_window)
         self.get_frequency = QtWidgets.QTextEdit(self.main_window)
         self.thread = None
+        self.db_calc = DecibelCalc()
 
     def init_ui(self):
         """ Инициализация интерфейса
         """
-        self.resize(1520, 942)
+        self.resize(1670, 942)
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("images\\icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
         self.setWindowIcon(icon)
-        self.setWindowTitle("К2-82 v 0.3.3")
-        self.functional.connect_com_port(self.functional.COM)
+        self.setWindowTitle("К2-82 v 0.4")
+        self.k2_functional.connect_com_port(self.k2_functional.COM)
 
         # Задний фон
         # oImage = QImage("images\\logo (2).png")
@@ -55,7 +56,7 @@ class UiMainWindow(QMainWindow):
 
         self.setCentralWidget(self.main_window)
 
-        self.statusBar().showMessage('COM порт: {}'.format(self.functional.COM))
+        self.statusBar().showMessage('COM порт: {}'.format(self.k2_functional.COM))
 
 
     def init_device(self):
@@ -241,12 +242,12 @@ class UiMainWindow(QMainWindow):
         button_right = QtWidgets.QPushButton("Вправо", self.main_window)
         button_right.setGeometry(QtCore.QRect(1220, 350, button_width, button_height))
         button_right.clicked.connect(self.button_right_click)
-        button_left = QtWidgets.QPushButton("Влево", self.main_window)
+        button_left = QtWidgets.QPushButton("Вниз", self.main_window)
         button_left.setGeometry(QtCore.QRect(1110, 400, button_width, button_height))
-        button_left.clicked.connect(self.button_left_click)
-        button_down = QtWidgets.QPushButton("Вниз", self.main_window)
+        button_left.clicked.connect(self.button_down_click)
+        button_down = QtWidgets.QPushButton("Влево", self.main_window)
         button_down.setGeometry(QtCore.QRect(1000, 350, button_width, button_height))
-        button_down.clicked.connect(self.button_down_click)
+        button_down.clicked.connect(self.button_left_click)
         disconnect_button = QtWidgets.QPushButton("ОТКЛ", self.main_window)
         disconnect_button.setGeometry(QtCore.QRect(1330, 400, button_width, button_height))
         disconnect_button.clicked.connect(self.disconnect_button_click)
@@ -299,11 +300,11 @@ class UiMainWindow(QMainWindow):
         """ Инициализация таблицы результатов
         """
         #TODO реализовать сохранение параметров в ведомость (уже готовую)
-        coll_names = ["№ РC", "P", "Выс. P", "Откл.", "КНИ", "ЧМ", "Max дев.", "Чувств.", "Вых. P",
-                            "Вых P.", "Избер.", "КНИ", "Шумодав", "Деж реж.", "I пр.", "I прд.", "Раздяд\nАКБ"]
-        rows, cols = 20, 17
+        coll_names = ["№ РC", "№ АКБ", "Ёмкость", "P", "Выс. P", "Откл.", "КНИ", "ЧМ", "Max дев.", "Чувств.",
+                      "Вых. P", "Вых P.", "Избер.", "КНИ", "Шумодав", "Деж реж.", "I пр.", "I прд.", "Раздяд\nАКБ"]
+        rows, cols = 20, 19
 
-        self.result_table.setGeometry(QtCore.QRect(220, 480, 1281, 391))
+        self.result_table.setGeometry(QtCore.QRect(220, 480, 1421, 391))
         self.result_table.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.CrossCursor))
         self.result_table.setMouseTracking(True)
         self.result_table.setAutoFillBackground(True)
@@ -355,7 +356,7 @@ class UiMainWindow(QMainWindow):
 
     def copy_selection(self):
         """ Копирование данных из таблицы в формате Excel
-            Комбинация клавиш: ctrl+v
+            Комбинация клавиш для копирования: ctrl+с
         """
         selection = self.result_table.selectedIndexes()
         if selection:
@@ -393,7 +394,7 @@ class UiMainWindow(QMainWindow):
         com3_action = QAction('&COM3', self)
         com3_action.triggered.connect(self.menu_com3_choice)
         decibel_calc_action = QAction(QIcon('images\\calc.ico'), '&Калькулятор децибел', self)
-        decibel_calc_action.triggered.connect(decibel_calc)
+        decibel_calc_action.triggered.connect(self.db_calc.show)
 
         file_menu = menu_bar.addMenu('&Файл')
         file_menu.addAction(check_action)
@@ -412,206 +413,143 @@ class UiMainWindow(QMainWindow):
         # tool_bar.addAction(check_action)
 
 
+    def click_button(self, text, code):
+        """ Функция нажатия кнопки
+            Осуществляет отправку сигнала на COM порт и вывод текста на экран приложения
+            :param text - текст, который будет выводиться на экран
+            :param code - код, который будет отправлен на COM порт
+        """
+        self.k2_functional.connect_com_port(self.k2_functional.COM)
+        result = self.k2_functional.send_code(command=text, code=code)
+        self.screen_text.setText(result)
+        self.k2_functional.com.close()
+
+
     # Блок кнопок РЕЖИМ функции
     def mode_ust_click(self):
-        text = 'УСТ'
-        result = self.functional.send_code(command=text, code=b'0x23')
-        self.screen_text.setText(result)
+        self.click_button(text='УСТ', code=b'0x23')
 
     def mode_du_click(self):
-        text = 'ДУ'
-        result = self.functional.send_code(command=text, code=b'0x24')
-        self.screen_text.setText(result)
+        self.click_button(text='ДУ', code=b'0x24')
 
     def mode_20w_click(self):
-        text = '20W'
-        result = self.functional.send_code(command=text, code=b'0x25')
-        self.screen_text.setText(result)
+        self.click_button(text='20W', code=b'0x25')
 
     def mode_write_click(self):
-        text = 'ЗАПИСЬ'
-        result = self.functional.send_code(command=text, code=b'0x22')
-        self.screen_text.setText(result)
+        self.click_button(text='ЗАПИСЬ', code=b'0x22')
 
     def mode_read_click(self):
-        text = 'ВЫВОД'
-        result = self.functional.send_code(command=text, code=b'0x21')
-        self.screen_text.setText(result)
+        self.click_button(text='ВЫВОД', code=b'0x21')
 
 
     # ВЧ блок кнопок функции
     def high_frequency_click(self):
-        text = 'ВЧ ЧАСТ'
-        result = self.functional.send_code(command=text, code=b'0x26')
-        self.screen_text.setText(result)
+        self.click_button(text='ВЧ ЧАСТ', code=b'0x26')
 
     def high_chm_click(self):
-        text = 'ВЧ ЧМ'
-        result = self.functional.send_code(command=text, code=b'0x27')
-        self.screen_text.setText(result)
+        self.click_button(text='ВЧ ЧМ', code=b'0x27')
 
     def high_dop1_click(self):
         self.screen_text.setText('Кнопка не активна')
 
     def high_pow_click(self):
-        text = 'МОЩН'
-        result = self.functional.send_code(command=text, code=b'0x29')
-        self.screen_text.setText(result)
+        self.click_button(text='МОЩН', code=b'0x29')
 
     def high_chm_off_click(self):
-        text = 'ВЧ ЧМ ОТКЛ'
-        result = self.functional.send_code(command=text, code=b'0x30')
-        self.screen_text.setText(result)
-
+        self.click_button(text='ВЧ ЧМ ОТКЛ', code=b'0x30')
 
     # НЧ блок кнопок функции
     def low_frequency_click(self):
-        text = 'НЧ ЧАСТ'
-        result = self.functional.send_code(command=text, code=b'0x31')
-        self.screen_text.setText(result)
+        self.click_button(text='НЧ ЧАСТ', code=b'0x31')
 
     def low_kg_click(self):
-        text = 'НЧ КГ'
-        result = self.functional.send_code(command=text, code=b'0x32')
-        self.screen_text.setText(result)
+        self.click_button(text='НЧ КГ', code=b'0x32')
 
     def low_dop2_click(self):
-        text = 'НЧ ДОП2'
-        result = self.functional.send_code(command=text, code=b'0x33')
-        self.screen_text.setText(result)
+        self.click_button(text='НЧ ДОП2', code=b'0x33')
 
     def low_voltage_click(self):
-        text = 'НЧ НАПР'
-        result = self.functional.send_code(command=text, code=b'0x34')
-        self.screen_text.setText(result)
+        self.click_button(text='НЧ НАПР', code=b'0x34')
 
     def low_chm_ext_click(self):
-        text = 'НЧ ЧМ ВНЕШН'
-        result = self.functional.send_code(command=text, code=b'0x35')
-        self.screen_text.setText(result)
+        self.click_button(text='НЧ ЧМ ВНЕШН', code=b'0x35')
 
 
     # Блок стрелок ИЗМЕНЕНИЕ
     def button_up_click(self):
-        text = 'ВВЕРХ'
-        result = self.functional.send_code(command=text, code=b'0x16')
-        self.screen_text.setText(result)
+        self.click_button(text='ВВЕРХ', code=b'0x16')
 
     def button_down_click(self):
-        text = 'ВНИЗ'
-        result = self.functional.send_code(command=text, code=b'0x17')
-        self.screen_text.setText(result)
+        self.click_button(text='ВНИЗ', code=b'0x17')
 
     def button_left_click(self):
-        text = 'ВЛЕВО'
-        result = self.functional.send_code(command=text, code=b'0x18')
-        self.screen_text.setText(result)
+        self.click_button(text='ВЛЕВО', code=b'0x18')
 
     def button_right_click(self):
-        text = 'ВПРАВО'
-        result = self.functional.send_code(command=text, code=b'0x19')
-        self.screen_text.setText(result)
+        self.click_button(text='ВПРАВО', code=b'0x19')
 
     def disconnect_button_click(self):
-        text = 'ОТКЛ'
-        result = self.functional.send_code(command=text, code=b'0x20')
-        self.screen_text.setText(result)
+        self.click_button(text='ОТКЛ', code=b'0x20')
 
     def input_button_click(self):
-        text = 'ВВОД'
-        result = self.functional.send_code(command=text, code=b'0x15')
-        self.screen_text.setText(result)
-
+        self.click_button(text='ВВОД', code=b'0x15')
 
     # Цифровая клавиатура функции
     def button_1_click(self):
-        text = '1'
-        result = self.functional.send_code(command=text, code=b'0x01')
-        self.screen_text.setText(result)
+        self.click_button(text='1', code=b'0x01')
 
     def button_2_click(self):
-        text = '2'
-        result = self.functional.send_code(command=text, code=b'0x02')
-        self.screen_text.setText(result)
+        self.click_button(text='2', code=b'0x02')
 
     def button_3_click(self):
-        text = '3'
-        result = self.functional.send_code(command=text, code=b'0x03')
-        self.screen_text.setText(result)
+        self.click_button(text='3', code=b'0x03')
 
     def button_4_click(self):
-        text = '4'
-        result = self.functional.send_code(command=text, code=b'0x04')
-        self.screen_text.setText(result)
+        self.click_button(text='4', code=b'0x04')
 
     def button_5_click(self):
-        text = '5'
-        result = self.functional.send_code(command=text, code=b'0x05')
-        self.screen_text.setText(result)
+        self.click_button(text='5', code=b'0x05')
 
     def button_6_click(self):
-        text = '6'
-        result = self.functional.send_code(command=text, code=b'0x06')
-        self.screen_text.setText(result)
+        self.click_button(text='6', code=b'0x06')
 
     def button_7_click(self):
-        text = '7'
-        result = self.functional.send_code(command=text, code=b'0x07')
-        self.screen_text.setText(result)
+        self.click_button(text='7', code=b'0x07')
 
     def button_8_click(self):
-        text = '8'
-        result = self.functional.send_code(command=text, code=b'0x08')
-        self.screen_text.setText(result)
+        self.click_button(text='8', code=b'0x08')
 
     def button_9_click(self):
-        text = '9'
-        result = self.functional.send_code(command=text, code=b'0x09')
-        self.screen_text.setText(result)
+        self.click_button(text='9', code=b'0x09')
 
     def button_0_click(self):
-        text = '0'
-        result = self.functional.send_code(command=text, code=b'0x00')
-        self.screen_text.setText(result)
+        self.click_button(text='0', code=b'0x00')
 
     def button_point_click(self):
-        text = '.'
-        result = self.functional.send_code(command=text, code=b'0x10')
-        self.screen_text.setText(result)
+        self.click_button(text='.', code=b'0x10')
 
     def button_line_click(self):
-        text = '-'
-        result = self.functional.send_code(command=text, code=b'0x11')
-        self.screen_text.setText(result)
-
+        self.click_button(text='-', code=b'0x11')
 
     # Множетели
     def button_mhz_click(self):
-        text = 'V/MHz'
-        result = self.functional.send_code(command=text, code=b'0x12')
-        self.screen_text.setText(result)
+        self.click_button(text='V/MHz', code=b'0x12')
 
     def button_khz_click(self):
-        text = 'mV/kHz'
-        result = self.functional.send_code(command=text, code=b'0x13')
-        self.screen_text.setText(result)
+        self.click_button(text='mV/kHz', code=b'0x13')
 
     def button_hz_click(self):
-        text = 'uV/Hz'
-        result = self.functional.send_code(command=text, code=b'0x14')
-        self.screen_text.setText(result)
+        self.click_button(text='uV/Hz', code=b'0x14')
 
-
-    #@time_track
     def check_rs_button_click(self):
         """ Кнопка запуска цикла проверки радиостанции
             Запускает отдельный поток для проверки и формирует получение сигналов из этого потока
         """
         self.thread = QThread()
-        self.functional.model = self.choice_of_the_model.currentText()[3:]
-        self.functional.connect_com_port(self.functional.COM)
+        self.k2_functional.model = self.choice_of_the_model.currentText()[3:]
+        self.k2_functional.connect_com_port(self.k2_functional.COM)
 
-        self.new_check = Check(self.functional)
+        self.new_check = Check(self.k2_functional)
         self.new_check.moveToThread(self.thread)
         self.new_check.next_screen_text.connect(self.screen_text.setText)
         self.new_check.next_message_box.connect(self.message_box)
@@ -630,12 +568,12 @@ class UiMainWindow(QMainWindow):
         self.screen_text.setText(check_result['message'])
 
         if check_result['params'] is not None:
-            col = 1
+            col = 0
             for param in check_result['params']:
                 cell_info = QtWidgets.QTableWidgetItem(str(param).replace('.', ','))
                 self.result_table.setItem(self.row, col, cell_info)
                 col += 1
-                if col == 14:
+                if col == 1 or col == 16:
                     col += 2
 
             self.row += 1
@@ -650,16 +588,16 @@ class UiMainWindow(QMainWindow):
             :param message - список из заголовка всплывающего окна и
                              сообщения выводимого в сплывающем окне
         """
-        self.functional.continue_thread = False
+        self.k2_functional.continue_thread = False
         QMessageBox.information(self, message[0], message[1])
-        self.functional.continue_thread = True
+        self.k2_functional.continue_thread = True
 
 
     def button_cancel_click(self):
         """ Кнопка отмены цикла проверки
         """
-        if self.functional.check:
-            self.functional.cancel = True
+        if self.k2_functional.check:
+            self.k2_functional.cancel = True
             self.thread.terminate()
 
     def get_frequency_button_click(self, event=None):
@@ -669,10 +607,10 @@ class UiMainWindow(QMainWindow):
         """
         frequency = self.get_frequency.toPlainText()
         try:
-            self.screen_text.setText(self.functional.input_frequency(frequency))
+            self.screen_text.setText(self.k2_functional.input_frequency(frequency))
         except AttributeError:
             event_log.error('COM port connecting error')
-            self.screen_text.setText('Не удается соедениться с {}'.format(self.functional.port))
+            self.screen_text.setText('Не удается соедениться с {}'.format(self.k2_functional.port))
 
 
     def deviation_flag_click(self, state):
@@ -680,39 +618,39 @@ class UiMainWindow(QMainWindow):
             :param state - статус флажка пропуска максимальной девиации
         """
         if state == Qt.Checked:
-            self.functional.check_deviation_time = 0.2
+            self.k2_functional.check_deviation_time = 0.2
         else:
-            self.functional.check_deviation_time = 33
+            self.k2_functional.check_deviation_time = 33
 
 
     def get_com_connect_info(self):
         """ Получение информации о состоянии подключения COM порта
         """
-        is_connect = self.functional.connect_com_port(self.functional.COM)
+        is_connect = self.k2_functional.connect_com_port(self.k2_functional.COM)
         if is_connect:
-            text = 'Соединение с {} установлено'.format(self.functional.COM)
-            self.statusBar().showMessage('COM: {}'.format(self.functional.COM))
+            text = 'Соединение с {} установлено'.format(self.k2_functional.COM)
+            self.statusBar().showMessage('COM: {}'.format(self.k2_functional.COM))
         else:
-            text = 'Не удается соедениться с {}'.format(self.functional.COM)
+            text = 'Не удается соедениться с {}'.format(self.k2_functional.COM)
         self.screen_text.setText(text)
 
     # Функции меню Настройки - выбор COM порта
     def menu_com1_choice(self):
         """ Подключение к COM 1
         """
-        self.functional.COM = 'COM1'
+        self.k2_functional.COM = 'COM1'
         self.get_com_connect_info()
 
     def menu_com2_choice(self):
         """ Подключение к COM 2
         """
-        self.functional.COM = 'COM2'
+        self.k2_functional.COM = 'COM2'
         self.get_com_connect_info()
 
     def menu_com3_choice(self):
         """ Подключение к COM 3
         """
-        self.functional.COM = 'COM3'
+        self.k2_functional.COM = 'COM3'
         self.get_com_connect_info()
 
 
@@ -726,9 +664,10 @@ class UiMainWindow(QMainWindow):
 
 
     def show_info(self):
-        """Меню справка - о программе"""
+        """ Меню справка - о программе
+        """
         QMessageBox.information(self, 'О программе',
-    '''v 0.3.1 dev
+    '''v 0.4
 
     Автомотизированное проведение  технического
     обслуживания  с  использованием установки для

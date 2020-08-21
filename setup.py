@@ -20,7 +20,7 @@ build_exe_options = {"packages": includes}
 
 setup(
     name = "k2_82",
-    version = "0.3.3",
+    version = "0.4",
     description = "k2_82",
     options = {"build_exe": build_exe_options},
     executables = [Executable("k2_82.py", base='Win32GUI')]
