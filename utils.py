@@ -67,13 +67,12 @@ class DecibelCalc:
         except ValueError:
             pass
 
+
     def show(self):
         """ Отображение дополнительного окна с калькулятором
         """
-        x = 40
-        y = 20
-        width = 150
-        height = 30
+        x, y = 40, 20
+        width, height = 150, 30
 
         self.calc.title('Калькулятор децибел')
         self.calc.minsize(width=390, height=170)

@@ -1,15 +1,11 @@
-# Модуль с алгоритмом функционала приставки К2-82
-import re
-import serial, time
-import xlwt
+# Модуль с алгоритмами функционалов радиостанции и приставки К2-82
+import re, serial, time, xlwt
 
 
 class ImportToExcel:
-    """
-    Класс для выгрузки результатов проверки радиостанции в Excel документ для
-    дальнейшего копирования в ведомость
-    * Создание Excel файла и запись в него результатов
-    * Сохранение Excel файла под указанным именем в заданную директорию пользователем
+    """ Класс для выгрузки результатов проверки радиостанции в Excel документ для дальнейшего копирования в ведомость
+        * Создание Excel файла и запись в него результатов
+        * Сохранение Excel файла под указанным именем в заданную директорию пользователем
     """
 
     def __init__(self):
@@ -18,36 +14,40 @@ class ImportToExcel:
         self.sheet = self.book.add_sheet('Sheet')
         self.line = 0
 
+
     def write_book(self, *args):
-        """
-        Запись результатов проверки в Excel документ
-        :param args - упакованные результаты проверки радиостанции
+        """ Запись результатов проверки в Excel документ
+            :param args - упакованные результаты проверки радиостанции
         """
         row = self.sheet.row(self.line)
+
         for index, col in enumerate(self.cols):
             value = args[index]
             row.write(index, value)
         self.line += 1
 
+
     def save_book(self, name):
-        """
-        Сохранение Excel документа
-        :param name - имя сохраняемого Excel файла
+        """ Сохранение Excel документа
+            :param name - имя сохраняемого Excel файла
         """
         self.book.save(name + '.xls')
 
 
 
 class RSFunctional:
+    """ Функционал подключеия к радиостанции
+        Получение серийного номера
+    """
     def __init__(self):
         self.port = None
         self.com = None
         self._sn_pattern = r'672[a-zA-Z0-9]{7}'
 
+
     def connect_com_port(self, port):
-        """
-        Соединение с COM портом
-        :param port - название ком порта
+        """ Соединение с COM портом
+            :param port - название ком порта
         """
         self.port = port
         self.com = None
@@ -58,8 +58,11 @@ class RSFunctional:
         except serial.SerialException:
             return False
 
+
     def get_serial(self):
-        self.com.write(b'\xf2\x23\x01\xe9')
+        """ Получение серийного номера с радиостанции
+        """
+        self.com.write(b'\xf2\x23\x01\xe9')     # ASCII: 'т#<SON>й'
         result = self.com.readline()
         serial_number_in = result.decode('cp1251')
         serial_number_format = re.search(self._sn_pattern, serial_number_in)
@@ -73,12 +76,11 @@ class RSFunctional:
 
 
 class K2Functional(RSFunctional):
-    """
-    Класс основного функционала приставки К2-82
-    * Соединение с ком портом
-    * Отправка команды на К2-82
-    * Установка частоты на К2-82
-    * Отправка числовых значений на К2-82
+    """ Класс основного функционала приставки К2-82
+        * Соединение с ком портом (Унаследовано из класса RSFunctional)
+        * Отправка команды на К2-82
+        * Установка частоты на К2-82
+        * Отправка числовых значений на К2-82
     """
 
     COM = 'COM2'
@@ -86,36 +88,17 @@ class K2Functional(RSFunctional):
 
     def __init__(self):
         super(K2Functional, self).__init__()
-        #self.port = None
         self.check_deviation_time = 33
         self.cancel = False
         self.check = False
-        #self.com = None
-        self.com_rs = None
         self.excel_book = ImportToExcel()
         self.continue_thread = True
 
 
-    # def connect_com_port(self, port):
-    #     """
-    #     Соединение с COM портом
-    #     :param port - название ком порта
-    #     """
-    #     self.port = port
-    #     self.com = None
-    #
-    #     try:
-    #         self.com = serial.Serial(port, 9600, timeout=1)
-    #         return True
-    #     except serial.SerialException:
-    #         return False
-
-
     def send_code(self, code, command=None):
-        """
-        Отправка команды на COM порт
-        :param code - ASCII код отправляемый на прибор
-        :param command - указание нужно ли отображать на дисплее что команда отправлена
+        """ Отправка команды на COM порт
+            :param code - ASCII код отправляемый на прибор
+            :param command - указание нужно ли отображать на дисплее что команда отправлена
         """
         try:
             self.com.write(code)
@@ -128,9 +111,8 @@ class K2Functional(RSFunctional):
 
 
     def input_frequency(self, f):
-        """
-        Установка заданной частоты на К2-82
-        :param f - частота
+        """ Установка заданной частоты на К2-82
+            :param f - частота
         """
         error_message = 'Введите корректную частоту (например 151.825 или 151825)'
 
@@ -150,13 +132,13 @@ class K2Functional(RSFunctional):
             return error_message
 
         self.send_code(b'0x12')
+
         return 'Частота {} установлена на приборе'.format(f)
 
 
     def numbers_entry(self, char):
-        """
-        Отправка числовых значений (цифровая клавиатура на К2-82)
-        :param char - число которое вводим на К2-82
+        """ Отправка числовых значений (цифровая клавиатура на К2-82)
+            :param char - число которое вводим на К2-82
         """
         if char == '1':
             self.send_code(b'0x01')

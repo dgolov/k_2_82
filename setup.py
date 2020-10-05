@@ -1,6 +1,7 @@
 # Настройки для сборки программы в файл exe
 
 from cx_Freeze import setup, Executable
+from settings import *
 import sys, os, xlwt, PyQt5
 
 
@@ -20,7 +21,7 @@ build_exe_options = {"packages": includes}
 
 setup(
     name = "k2_82",
-    version = "0.4",
+    version = VERSION,
     description = "k2_82",
     options = {"build_exe": build_exe_options},
     executables = [Executable("k2_82.py", base='Win32GUI')]

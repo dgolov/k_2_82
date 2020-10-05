@@ -10,6 +10,7 @@ from functional import K2Functional
 from check import Check
 from logging_settings import event_log
 from utils import DecibelCalc
+from settings import *
 
 
 
@@ -31,23 +32,16 @@ class UiMainWindow(QMainWindow):
         self.thread = None
         self.db_calc = DecibelCalc()
 
+
     def init_ui(self):
         """ Инициализация интерфейса
         """
-        self.resize(1670, 942)
+        self.resize(1670, 980)
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("images\\icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
         self.setWindowIcon(icon)
-        self.setWindowTitle("К2-82 v 0.4")
-        self.k2_functional.connect_com_port(self.k2_functional.COM)
-
-        # Задний фон
-        # oImage = QImage("images\\logo (2).png")
-        # sImage = oImage.scaled(QSize(1520, 942))
-        # palette = QPalette()
-        # palette.setBrush(QPalette.Window, QBrush(sImage))
-        # self.setPalette(palette)
+        self.setWindowTitle("К2-82 v {}".format(VERSION))
 
         self.init_device()
         self.init_buttons()
@@ -56,7 +50,14 @@ class UiMainWindow(QMainWindow):
 
         self.setCentralWidget(self.main_window)
 
-        self.statusBar().showMessage('COM порт: {}'.format(self.k2_functional.COM))
+        self.k2_functional.connect_com_port(self.k2_functional.COM)
+        try:
+            self.k2_functional.com.close()
+            self.screen_text.setText('Соединение с {} установлено'.format(self.k2_functional.COM))
+        except AttributeError:
+            self.screen_text.setText('Не удается соединениться с {}'.format(self.k2_functional.COM))
+
+        self.statusBar().showMessage('COM порт К2-82: {}    |   COM порт радиостанции: {}'.format(com, com_rs))
 
 
     def init_device(self):
@@ -70,6 +71,7 @@ class UiMainWindow(QMainWindow):
         self.k2_frame.setStyleSheet("background-color: rgb(76, 153, 230);")
         self.k2_frame.setFrameShape(QtWidgets.QFrame.WinPanel)
         self.k2_frame.setFrameShadow(QtWidgets.QFrame.Raised)
+
         self.screen_frame.setGeometry(QtCore.QRect(60, 60, 641, 101))
         self.screen_frame.setTabletTracking(False)
         self.screen_frame.setToolTipDuration(1)
@@ -78,8 +80,8 @@ class UiMainWindow(QMainWindow):
         self.screen_frame.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.screen_frame.setLineWidth(1)
         self.screen_frame.setMidLineWidth(1)
-        self.screen_text.setGeometry(QtCore.QRect(20, 19, 591, 61))
 
+        self.screen_text.setGeometry(QtCore.QRect(20, 19, 591, 61))
         font.setPointSize(10)
         font.setWeight(50)
         self.screen_text.setFont(font)
@@ -87,56 +89,37 @@ class UiMainWindow(QMainWindow):
         self.screen_text.setAlignment(QtCore.Qt.AlignCenter)
 
         # Надписи на приборе
-        label = QtWidgets.QLabel('Перед началом работы не забудь активировать кнопки УСТ и ДУ на приборе.',
-                                 self.k2_frame)
-        label.setGeometry(QtCore.QRect(60, 20, 700, 20))
         font = QtGui.QFont()
-        font.setPointSize(9)
         font.setWeight(50)
-        label.setFont(font)
-
-        label_mode = QtWidgets.QLabel('Режим', self.k2_frame)
-        label_mode.setGeometry(QtCore.QRect(20, 210, 281, 20))
-        font.setPointSize(11)
-        label_mode.setFont(font)
-        label_mode.setAlignment(QtCore.Qt.AlignCenter)
-        label_hight = QtWidgets.QLabel('ВЧ', self.k2_frame)
-        label_hight.setGeometry(QtCore.QRect(295, 210, 271, 20))
-        label_hight.setFont(font)
-        label_hight.setStyleSheet("color: rgb(18, 18, 18);")
-        label_hight.setAlignment(QtCore.Qt.AlignCenter)
-        label_low = QtWidgets.QLabel('НЧ', self.k2_frame)
-        label_low.setGeometry(QtCore.QRect(575, 210, 301, 20))
-        label_low.setFont(font)
-        label_low.setStyleSheet("color: rgb(18, 18, 18);")
-        label_low.setAlignment(QtCore.Qt.AlignCenter)
-        label_measurement = QtWidgets.QLabel('Измерение', self.k2_frame)
-        label_measurement.setGeometry(QtCore.QRect(893, 210, 531, 20))
-        label_measurement.setFont(font)
-        label_measurement.setStyleSheet("color: rgb(18, 18, 18);")
-        label_measurement.setAlignment(QtCore.Qt.AlignCenter)
+        labels = ['Перед началом работы не забудь активировать кнопки УСТ и ДУ на приборе.',
+                 'Режим', 'ВЧ', 'НЧ', 'Измерение']
+        labels_geometry = [(60, 20, 700, 20), (20, 210, 281, 20), (295, 210, 271, 20), (575, 210, 301, 20),
+                    (893, 210, 531, 20)]
+        for i in range(5):
+            font.setPointSize(11)
+            label = QtWidgets.QLabel(self.k2_frame)
+            label.setText(labels[i])
+            label.setGeometry(QtCore.QRect(*labels_geometry[i]))
+            if i == 0: font.setPointSize(9)
+            else:
+                label.setAlignment(QtCore.Qt.AlignCenter)
+                label.setStyleSheet("color: rgb(18, 18, 18);")
+            label.setFont(font)
 
         # Линии на приборе
-        line_3 = QtWidgets.QFrame(self.k2_frame)
-        line_3.setGeometry(QtCore.QRect(280, 200, 20, 209))
-        line_3.setFrameShape(QtWidgets.QFrame.VLine)
-        line_3.setFrameShadow(QtWidgets.QFrame.Sunken)
-        line_4 = QtWidgets.QFrame(self.k2_frame)
-        line_4.setGeometry(QtCore.QRect(560, 200, 20, 209))
-        line_4.setFrameShape(QtWidgets.QFrame.VLine)
-        line_4.setFrameShadow(QtWidgets.QFrame.Sunken)
-        line_5 = QtWidgets.QFrame(self.k2_frame)
-        line_5.setGeometry(QtCore.QRect(875, 1, 20, 408))
-        line_5.setFrameShape(QtWidgets.QFrame.VLine)
-        line_5.setFrameShadow(QtWidgets.QFrame.Sunken)
-        line = QtWidgets.QFrame(self.k2_frame)
-        line.setGeometry(QtCore.QRect(1, 190, 1428, 20))
-        line.setFrameShape(QtWidgets.QFrame.HLine)
-        line.setFrameShadow(QtWidgets.QFrame.Sunken)
-        line_2 = QtWidgets.QFrame(self.k2_frame)
-        line_2.setGeometry(QtCore.QRect(1, 230, 1428, 20))
-        line_2.setFrameShape(QtWidgets.QFrame.HLine)
-        line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
+        for i in range(5):
+            line = QtWidgets.QFrame(self.k2_frame)
+
+            if i == 0: line.setGeometry(QtCore.QRect(280, 200, 20, 209))
+            elif i == 1: line.setGeometry(QtCore.QRect(560, 200, 20, 209))
+            elif i == 2: line.setGeometry(QtCore.QRect(875, 1, 20, 408))
+            elif i == 3: line.setGeometry(QtCore.QRect(1, 190, 1428, 20))
+            elif i == 4: line.setGeometry(QtCore.QRect(1, 230, 1428, 20))
+
+            if i in range(3): line.setFrameShape(QtWidgets.QFrame.VLine)
+            else: line.setFrameShape(QtWidgets.QFrame.HLine)
+
+            line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
 
     def init_buttons(self):
@@ -148,112 +131,112 @@ class UiMainWindow(QMainWindow):
          # Кнопки на приборе
         button_mhz = QPushButton("V/MHz", self.main_window)
         button_mhz.setGeometry(QtCore.QRect(800, 90, button_width, button_height))
-        button_mhz.clicked.connect(self.button_mhz_click)
+        button_mhz.clicked.connect(lambda: self.click_button(text='V/MHz', code=CODES['V/MHz']))
         button_khz = QPushButton("mV/kHz", self.main_window)
         button_khz.setGeometry(QtCore.QRect(800, 140, button_width, button_height))
-        button_khz.clicked.connect(self.button_khz_click)
+        button_khz.clicked.connect(lambda: self.click_button(text='mV/kHz', code=CODES['mV/kHz']))
         button_hz = QPushButton("uV/Hz", self.main_window)
         button_hz.setGeometry(QtCore.QRect(800, 190, button_width, button_height))
-        button_hz.clicked.connect(self.button_hz_click)
+        button_hz.clicked.connect(lambda: self.click_button(text='uV/Hz', code=CODES['uV/Hz']))
         button_2 = QPushButton("2", self.main_window)
         button_2.setGeometry(QtCore.QRect(1000, 140, button_width, button_height))
-        button_2.clicked.connect(self.button_2_click)
+        button_2.clicked.connect(lambda: self.click_button(text='2', code=CODES['2']))
         button_line = QPushButton("-", self.main_window)
         button_line.setGeometry(QtCore.QRect(1000, 190, button_width, button_height))
-        button_line.clicked.connect(self.button_line_click)
+        button_line.clicked.connect(lambda: self.click_button(text='-', code=CODES['-']))
         button_6 = QPushButton("6", self.main_window)
         button_6.setGeometry(QtCore.QRect(1000, 90, button_width, button_height))
-        button_6.clicked.connect(self.button_6_click)
+        button_6.clicked.connect(lambda: self.click_button(text='6', code=CODES['6']))
         button_point = QPushButton(".", self.main_window)
         button_point.setGeometry(QtCore.QRect(1110, 190, button_width, button_height))
-        button_point.clicked.connect(self.button_point_click)
+        button_point.clicked.connect(lambda: self.click_button(text='.', code=CODES['.']))
         button_7 = QPushButton("7", self.main_window)
         button_7.setGeometry(QtCore.QRect(1110, 90, button_width, button_height))
-        button_7.clicked.connect(self.button_7_click)
+        button_7.clicked.connect(lambda: self.click_button(text='7', code=CODES['7']))
         button_3 = QPushButton("3", self.main_window)
         button_3.setGeometry(QtCore.QRect(1110, 140, button_width, button_height))
-        button_3.clicked.connect(self.button_3_click)
+        button_3.clicked.connect(lambda: self.click_button(text='3', code=CODES['3']))
         button_0 = QPushButton("0", self.main_window)
         button_0.setGeometry(QtCore.QRect(1220, 190, button_width, button_height))
-        button_0.clicked.connect(self.button_0_click)
+        button_0.clicked.connect(lambda: self.click_button(text='0', code=CODES['0']))
         button_9 = QPushButton("9", self.main_window)
         button_9.setGeometry(QtCore.QRect(1330, 90, button_width, button_height))
-        button_9.clicked.connect(self.button_9_click)
+        button_9.clicked.connect(lambda: self.click_button(text='9', code=CODES['9']))
         button_1 = QtWidgets.QPushButton("1", self.main_window)
         button_1.setGeometry(QtCore.QRect(1330, 190, button_width, button_height))
-        button_1.clicked.connect(self.button_1_click)
+        button_1.clicked.connect(lambda: self.click_button(text='1', code=CODES['1']))
         button_8 = QtWidgets.QPushButton("8", self.main_window)
         button_8.setGeometry(QtCore.QRect(1220, 90, button_width, button_height))
-        button_8.clicked.connect(self.button_8_click)
+        button_8.clicked.connect(lambda: self.click_button(text='8', code=CODES['8']))
         button_5 = QtWidgets.QPushButton("5", self.main_window)
         button_5.setGeometry(QtCore.QRect(1330, 140, button_width, button_height))
-        button_5.clicked.connect(self.button_5_click)
+        button_5.clicked.connect(lambda: self.click_button(text='5', code=CODES['5']))
         button_4 = QtWidgets.QPushButton("4", self.main_window)
         button_4.setGeometry(QtCore.QRect(1220, 140, button_width, button_height))
-        button_4.clicked.connect(self.button_4_click)
+        button_4.clicked.connect(lambda: self.click_button(text='4', code=CODES['4']))
         mode_20w = QtWidgets.QPushButton("20W", self.main_window)
         mode_20w.setGeometry(QtCore.QRect(100, 400, button_width, button_height))
-        mode_20w.clicked.connect(self.mode_20w_click)
+        mode_20w.clicked.connect(lambda: self.click_button(text='20W', code=CODES['20W']))
         mode_write = QtWidgets.QPushButton("ЗАПИСЬ", self.main_window)
         mode_write.setGeometry(QtCore.QRect(210, 300, button_width, button_height))
-        mode_write.clicked.connect(self.mode_write_click)
+        mode_write.clicked.connect(lambda: self.click_button(text='ЗАПИСЬ', code=CODES['ЗАПИСЬ']))
         mode_ust = QPushButton("УСТ", self.main_window)
         mode_ust.setGeometry(QtCore.QRect(100, 300, button_width, button_height))
-        mode_ust.clicked.connect(self.mode_ust_click)
+        mode_ust.clicked.connect(lambda: self.click_button(text='УСТ', code=CODES['УСТ']))
         mode_du = QtWidgets.QPushButton("ДУ", self.main_window)
         mode_du.setGeometry(QtCore.QRect(100, 350, button_width, button_height))
-        mode_du.clicked.connect(self.mode_du_click)
-        mode_read = QtWidgets.QPushButton("ВВОД", self.main_window)
+        mode_du.clicked.connect(lambda: self.click_button(text='ДУ', code=CODES['ДУ']))
+        mode_read = QtWidgets.QPushButton("ВЫВОД", self.main_window)
         mode_read.setGeometry(QtCore.QRect(210, 350, button_width, button_height))
-        mode_read.clicked.connect(self.mode_read_click)
+        mode_read.clicked.connect(lambda: self.click_button(text='ВЫВОД', code=CODES['ВЫВОД']))
         high_frequency = QtWidgets.QPushButton("ЧАСТ", self.main_window)
         high_frequency.setGeometry(QtCore.QRect(370, 300, button_width, button_height))
-        high_frequency.clicked.connect(self.high_frequency_click)
+        high_frequency.clicked.connect(lambda: self.click_button(text='ВЧ ЧАСТ', code=CODES['ВЧ ЧАСТ']))
         high_pow = QtWidgets.QPushButton("МОЩН", self.main_window)
         high_pow.setGeometry(QtCore.QRect(480, 300, button_width, button_height))
-        high_pow.clicked.connect(self.high_pow_click)
+        high_pow.clicked.connect(lambda: self.click_button(text='МОЩН', code=CODES['МОЩН']))
         high_chm_off = QtWidgets.QPushButton("ЧМ ОТКЛ", self.main_window)
         high_chm_off.setGeometry(QtCore.QRect(480, 350, button_width, button_height))
-        high_chm_off.clicked.connect(self.high_chm_off_click)
+        high_chm_off.clicked.connect(lambda: self.click_button(text='ВЧ ЧМ ОТКЛ', code=CODES['ВЧ ЧМ ОТКЛ']))
         high_dop1 = QtWidgets.QPushButton("ДОП1", self.main_window)
         high_dop1.setGeometry(QtCore.QRect(370, 400, button_width, button_height))
-        high_dop1.clicked.connect(self.high_dop1_click)
+        high_dop1.clicked.connect(lambda: self.screen_text.setText('Кнопка не активна'))
         high_chm = QtWidgets.QPushButton("ЧМ", self.main_window)
         high_chm.setGeometry(QtCore.QRect(370, 350, button_width, button_height))
-        high_chm.clicked.connect(self.high_chm_click)
+        high_chm.clicked.connect(lambda: self.click_button(text='ВЧ ЧМ', code=CODES['ВЧ ЧМ']))
         low_frequency = QtWidgets.QPushButton("ЧАСТ", self.main_window)
         low_frequency.setGeometry(QtCore.QRect(650, 300, button_width, button_height))
-        low_frequency.clicked.connect(self.low_frequency_click)
+        low_frequency.clicked.connect(lambda: self.click_button(text='НЧ ЧАСТ', code=CODES['НЧ ЧАСТ']))
         low_voltage = QtWidgets.QPushButton("НАПР", self.main_window)
         low_voltage.setGeometry(QtCore.QRect(760, 300, button_width, button_height))
-        low_voltage.clicked.connect(self.low_voltage_click)
+        low_voltage.clicked.connect(lambda: self.click_button(text='НЧ НАПР', code=CODES['НЧ НАПР']))
         low_chm_ext = QtWidgets.QPushButton("ЧМ ВНЕШН", self.main_window)
         low_chm_ext.setGeometry(QtCore.QRect(760, 350, button_width, button_height))
-        low_chm_ext.clicked.connect(self.low_chm_ext_click)
+        low_chm_ext.clicked.connect(lambda: self.click_button(text='НЧ ЧМ ВНЕШН', code=CODES['НЧ ЧМ ВНЕШН']))
         low_dop2 = QtWidgets.QPushButton("ДОП2", self.main_window)
         low_dop2.setGeometry(QtCore.QRect(650, 400, button_width, button_height))
-        low_dop2.clicked.connect(self.low_dop2_click)
+        low_dop2.clicked.connect(lambda: self.click_button(text='НЧ ДОП2', code=CODES['НЧ ДОП2']))
         low_kg = QtWidgets.QPushButton("КГ", self.main_window)
         low_kg.setGeometry(QtCore.QRect(650, 350, button_width, button_height))
-        low_kg.clicked.connect(self.low_kg_click)
+        low_kg.clicked.connect(lambda: self.click_button(text='НЧ КГ', code=CODES['НЧ КГ']))
         button_up = QtWidgets.QPushButton("Вверх", self.main_window)
         button_up.setGeometry(QtCore.QRect(1110, 300, button_width, button_height))
-        button_up.clicked.connect(self.button_up_click)
+        button_up.clicked.connect(lambda: self.click_button(text='ВВЕРХ', code=CODES['ВВЕРХ']))
         button_right = QtWidgets.QPushButton("Вправо", self.main_window)
         button_right.setGeometry(QtCore.QRect(1220, 350, button_width, button_height))
-        button_right.clicked.connect(self.button_right_click)
+        button_right.clicked.connect(lambda: self.click_button(text='ВПРАВО', code=CODES['ВПРАВО']))
         button_left = QtWidgets.QPushButton("Вниз", self.main_window)
         button_left.setGeometry(QtCore.QRect(1110, 400, button_width, button_height))
-        button_left.clicked.connect(self.button_down_click)
+        button_left.clicked.connect(lambda: self.click_button(text='ВНИЗ', code=CODES['ВНИЗ']))
         button_down = QtWidgets.QPushButton("Влево", self.main_window)
         button_down.setGeometry(QtCore.QRect(1000, 350, button_width, button_height))
-        button_down.clicked.connect(self.button_left_click)
+        button_down.clicked.connect(lambda: self.click_button(text='ВЛЕВО', code=CODES['ВЛЕВО']))
         disconnect_button = QtWidgets.QPushButton("ОТКЛ", self.main_window)
         disconnect_button.setGeometry(QtCore.QRect(1330, 400, button_width, button_height))
-        disconnect_button.clicked.connect(self.disconnect_button_click)
+        disconnect_button.clicked.connect(lambda: self.click_button(text='ОТКЛ', code=CODES['ОТКЛ']))
         input_button = QtWidgets.QPushButton("ВВОД", self.main_window)
         input_button.setGeometry(QtCore.QRect(1330, 300, button_width, button_height))
-        input_button.clicked.connect(self.input_button_click)
+        input_button.clicked.connect(lambda: self.click_button(text='ВВОД', code=CODES['ВВОД']))
 
         # Кнопки слева от таблицы
         self.choice_of_the_model.setGeometry(QtCore.QRect(30, 490, 171, button_height))
@@ -295,16 +278,18 @@ class UiMainWindow(QMainWindow):
         deviation_flag.setGeometry(QtCore.QRect(32, 740, 161, 21))
         deviation_flag.stateChanged.connect(self.deviation_flag_click)
 
+        # Очиста таблицы
+        clear_table_button = QtWidgets.QPushButton('Очистить таблицу', self.main_window)
+        clear_table_button.setGeometry(QtCore.QRect(1450, 900, 171, button_height))
+        clear_table_button.clicked.connect(self.clear_table)
+
 
     def init_table(self):
         """ Инициализация таблицы результатов
         """
-        #TODO реализовать сохранение параметров в ведомость (уже готовую)
-        coll_names = ["№ РC", "№ АКБ", "Ёмкость", "P", "Выс. P", "Откл.", "КНИ", "ЧМ", "Max дев.", "Чувств.",
-                      "Вых. P", "Вых P.", "Избер.", "КНИ", "Шумодав", "Деж реж.", "I пр.", "I прд.", "Раздяд\nАКБ"]
         rows, cols = 20, 19
 
-        self.result_table.setGeometry(QtCore.QRect(220, 480, 1421, 391))
+        self.result_table.setGeometry(QtCore.QRect(220, 480, 1421, 405))
         self.result_table.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.CrossCursor))
         self.result_table.setMouseTracking(True)
         self.result_table.setAutoFillBackground(True)
@@ -314,9 +299,11 @@ class UiMainWindow(QMainWindow):
         self.result_table.setMidLineWidth(1)
         self.result_table.setAlternatingRowColors(True)
         self.result_table.setGridStyle(QtCore.Qt.DashLine)
+        self.result_table.itemChanged.connect(self.table_update)
 
         self.result_table.setColumnCount(cols)
         self.result_table.setRowCount(rows)
+
         for row in range(rows):
             item = QtWidgets.QTableWidgetItem()
             self.result_table.setVerticalHeaderItem(row, item)
@@ -333,7 +320,7 @@ class UiMainWindow(QMainWindow):
             brush.setStyle(QtCore.Qt.SolidPattern)
             item.setForeground(brush)
             self.result_table.setHorizontalHeaderItem(coll, item)
-            item.setText(coll_names[coll])
+            item.setText(COLL_NAMES[coll])
 
         self.result_table.horizontalHeader().setCascadingSectionResizes(True)
         self.result_table.horizontalHeader().setDefaultSectionSize(72)
@@ -353,6 +340,31 @@ class UiMainWindow(QMainWindow):
             self.copy_selection()
             return True
         return super().eventFilter(source, event)
+
+
+    def table_update(self, item):
+        """ Автозамена введенных пользователем значений в таблице
+            В поле емкость акб 'n' и 'N' автоматически заменяется на 'N/R'
+            При вводе '-' в поле № АКБ автоматически добавляется '-' в поле емкость акб
+            :param item - ячейка в которую вводятся данные
+        """
+        text = item.text().upper()
+        if (text == 'N') and item.column() == 2:
+            item.setText('N/R')
+        elif text == '-' and item.column() == 1:
+            cell_info = QtWidgets.QTableWidgetItem('-')
+            column = item.column()
+            row = item.row()
+            self.result_table.setItem(row, column + 1, cell_info)
+        elif (text == 'Б' or text == 'B' or text == ',') and item.column() == 1:
+            item.setText('Б/Н')
+        elif item.column() == 17:
+            if str(text).isdigit():         # Если текст состоит только из цифр (например 123) то делим это
+                text = float(text) / 100    # значение на 100 чтобы получить корректное значение 1,23
+            item.setText(str(text).replace('.', ','))
+        else:
+            item.setText(text)
+
 
     def copy_selection(self):
         """ Копирование данных из таблицы в формате Excel
@@ -374,6 +386,14 @@ class UiMainWindow(QMainWindow):
             QtWidgets.qApp.clipboard().setText(stream.getvalue())
 
 
+    def clear_table(self):
+        """ Очистка таблицы
+        """
+        self.result_table.clear()
+        self.row = 0
+        self.init_table()
+
+
     def init_menu(self):
         """ Инициализация меню
         """
@@ -388,11 +408,11 @@ class UiMainWindow(QMainWindow):
         help_action.setShortcut('Ctrl+F1')
         help_action.triggered.connect(self.show_info)
         com1_action = QAction('&COM1', self)
-        com1_action.triggered.connect(self.menu_com1_choice)
+        com1_action.triggered.connect(lambda: self.choice_com_port(com_port='COM1'))
         com2_action = QAction('&COM2', self)
-        com2_action.triggered.connect(self.menu_com2_choice)
+        com2_action.triggered.connect(lambda: self.choice_com_port(com_port='COM2'))
         com3_action = QAction('&COM3', self)
-        com3_action.triggered.connect(self.menu_com3_choice)
+        com3_action.triggered.connect(lambda: self.choice_com_port(com_port='COM3'))
         decibel_calc_action = QAction(QIcon('images\\calc.ico'), '&Калькулятор децибел', self)
         decibel_calc_action.triggered.connect(self.db_calc.show)
 
@@ -409,9 +429,6 @@ class UiMainWindow(QMainWindow):
         help_menu = menu_bar.addMenu('&Справка')
         help_menu.addAction(help_action)
 
-        # tool_bar = self.addToolBar('Проверка')
-        # tool_bar.addAction(check_action)
-
 
     def click_button(self, text, code):
         """ Функция нажатия кнопки
@@ -419,127 +436,16 @@ class UiMainWindow(QMainWindow):
             :param text - текст, который будет выводиться на экран
             :param code - код, который будет отправлен на COM порт
         """
-        self.k2_functional.connect_com_port(self.k2_functional.COM)
+        if not self.k2_functional.check:
+            self.k2_functional.connect_com_port(self.k2_functional.COM)
         result = self.k2_functional.send_code(command=text, code=code)
         self.screen_text.setText(result)
-        self.k2_functional.com.close()
+        if not self.k2_functional.check:
+            try:
+                self.k2_functional.com.close()
+            except AttributeError:
+                pass
 
-
-    # Блок кнопок РЕЖИМ функции
-    def mode_ust_click(self):
-        self.click_button(text='УСТ', code=b'0x23')
-
-    def mode_du_click(self):
-        self.click_button(text='ДУ', code=b'0x24')
-
-    def mode_20w_click(self):
-        self.click_button(text='20W', code=b'0x25')
-
-    def mode_write_click(self):
-        self.click_button(text='ЗАПИСЬ', code=b'0x22')
-
-    def mode_read_click(self):
-        self.click_button(text='ВЫВОД', code=b'0x21')
-
-
-    # ВЧ блок кнопок функции
-    def high_frequency_click(self):
-        self.click_button(text='ВЧ ЧАСТ', code=b'0x26')
-
-    def high_chm_click(self):
-        self.click_button(text='ВЧ ЧМ', code=b'0x27')
-
-    def high_dop1_click(self):
-        self.screen_text.setText('Кнопка не активна')
-
-    def high_pow_click(self):
-        self.click_button(text='МОЩН', code=b'0x29')
-
-    def high_chm_off_click(self):
-        self.click_button(text='ВЧ ЧМ ОТКЛ', code=b'0x30')
-
-    # НЧ блок кнопок функции
-    def low_frequency_click(self):
-        self.click_button(text='НЧ ЧАСТ', code=b'0x31')
-
-    def low_kg_click(self):
-        self.click_button(text='НЧ КГ', code=b'0x32')
-
-    def low_dop2_click(self):
-        self.click_button(text='НЧ ДОП2', code=b'0x33')
-
-    def low_voltage_click(self):
-        self.click_button(text='НЧ НАПР', code=b'0x34')
-
-    def low_chm_ext_click(self):
-        self.click_button(text='НЧ ЧМ ВНЕШН', code=b'0x35')
-
-
-    # Блок стрелок ИЗМЕНЕНИЕ
-    def button_up_click(self):
-        self.click_button(text='ВВЕРХ', code=b'0x16')
-
-    def button_down_click(self):
-        self.click_button(text='ВНИЗ', code=b'0x17')
-
-    def button_left_click(self):
-        self.click_button(text='ВЛЕВО', code=b'0x18')
-
-    def button_right_click(self):
-        self.click_button(text='ВПРАВО', code=b'0x19')
-
-    def disconnect_button_click(self):
-        self.click_button(text='ОТКЛ', code=b'0x20')
-
-    def input_button_click(self):
-        self.click_button(text='ВВОД', code=b'0x15')
-
-    # Цифровая клавиатура функции
-    def button_1_click(self):
-        self.click_button(text='1', code=b'0x01')
-
-    def button_2_click(self):
-        self.click_button(text='2', code=b'0x02')
-
-    def button_3_click(self):
-        self.click_button(text='3', code=b'0x03')
-
-    def button_4_click(self):
-        self.click_button(text='4', code=b'0x04')
-
-    def button_5_click(self):
-        self.click_button(text='5', code=b'0x05')
-
-    def button_6_click(self):
-        self.click_button(text='6', code=b'0x06')
-
-    def button_7_click(self):
-        self.click_button(text='7', code=b'0x07')
-
-    def button_8_click(self):
-        self.click_button(text='8', code=b'0x08')
-
-    def button_9_click(self):
-        self.click_button(text='9', code=b'0x09')
-
-    def button_0_click(self):
-        self.click_button(text='0', code=b'0x00')
-
-    def button_point_click(self):
-        self.click_button(text='.', code=b'0x10')
-
-    def button_line_click(self):
-        self.click_button(text='-', code=b'0x11')
-
-    # Множетели
-    def button_mhz_click(self):
-        self.click_button(text='V/MHz', code=b'0x12')
-
-    def button_khz_click(self):
-        self.click_button(text='mV/kHz', code=b'0x13')
-
-    def button_hz_click(self):
-        self.click_button(text='uV/Hz', code=b'0x14')
 
     def check_rs_button_click(self):
         """ Кнопка запуска цикла проверки радиостанции
@@ -570,11 +476,23 @@ class UiMainWindow(QMainWindow):
         if check_result['params'] is not None:
             col = 0
             for param in check_result['params']:
-                cell_info = QtWidgets.QTableWidgetItem(str(param).replace('.', ','))
+                if col == 16:
+                    try:
+                        item = self.result_table.item(self.row, col).text()
+                        if item != '':
+                            col += 2
+                            continue
+                    except Exception:
+                        pass
+                cell_info = QtWidgets.QTableWidgetItem(str(param[0]).replace('.', ','))
+                if not param[1]:
+                    cell_info.setForeground(QtGui.QColor(250, 0, 0))
                 self.result_table.setItem(self.row, col, cell_info)
                 col += 1
-                if col == 1 or col == 16:
+                if col == 1:
                     col += 2
+                if col == 17:
+                    col += 1
 
             self.row += 1
 
@@ -600,6 +518,7 @@ class UiMainWindow(QMainWindow):
             self.k2_functional.cancel = True
             self.thread.terminate()
 
+
     def get_frequency_button_click(self, event=None):
         """
         Кнопка установки частоты на К2-82
@@ -623,35 +542,20 @@ class UiMainWindow(QMainWindow):
             self.k2_functional.check_deviation_time = 33
 
 
-    def get_com_connect_info(self):
+    def choice_com_port(self, com_port):
         """ Получение информации о состоянии подключения COM порта
+            :param com_port - название COM порта
         """
-        is_connect = self.k2_functional.connect_com_port(self.k2_functional.COM)
+        global com
+        com = com_port
+        is_connect = self.k2_functional.connect_com_port(com_port)
         if is_connect:
-            text = 'Соединение с {} установлено'.format(self.k2_functional.COM)
-            self.statusBar().showMessage('COM: {}'.format(self.k2_functional.COM))
+            text = 'Соединение с {} установлено'.format(com_port)
+            self.statusBar().showMessage('COM: {}'.format(com_port))
         else:
-            text = 'Не удается соедениться с {}'.format(self.k2_functional.COM)
+            text = 'Не удается соедениться с {}'.format(com_port)
         self.screen_text.setText(text)
-
-    # Функции меню Настройки - выбор COM порта
-    def menu_com1_choice(self):
-        """ Подключение к COM 1
-        """
-        self.k2_functional.COM = 'COM1'
-        self.get_com_connect_info()
-
-    def menu_com2_choice(self):
-        """ Подключение к COM 2
-        """
-        self.k2_functional.COM = 'COM2'
-        self.get_com_connect_info()
-
-    def menu_com3_choice(self):
-        """ Подключение к COM 3
-        """
-        self.k2_functional.COM = 'COM3'
-        self.get_com_connect_info()
+        self.statusBar().showMessage('COM порт К2-82: {}    |   COM порт радиостанции: {}'.format(com, com_rs))
 
 
     def save_file(self):
@@ -667,7 +571,7 @@ class UiMainWindow(QMainWindow):
         """ Меню справка - о программе
         """
         QMessageBox.information(self, 'О программе',
-    '''v 0.4
+    '''v {}
 
     Автомотизированное проведение  технического
     обслуживания  с  использованием установки для
@@ -701,5 +605,5 @@ class UiMainWindow(QMainWindow):
                                                         Разработчик Голов Д.Е. ©
                                                         ООО  "Телеком - Сервис"
                                                         2020 г.
-    '''
+    '''.format(VERSION)
     )
