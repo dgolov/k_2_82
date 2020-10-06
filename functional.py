@@ -1,5 +1,6 @@
 # Модуль с алгоритмами функционалов радиостанции и приставки К2-82
 import re, serial, time, xlwt
+from settings import CODES
 
 
 class ImportToExcel:
@@ -131,7 +132,7 @@ class K2Functional(RSFunctional):
         else:
             return error_message
 
-        self.send_code(b'0x12')
+        self.send_code(CODES['V/MHz'])
 
         return 'Частота {} установлена на приборе'.format(f)
 
@@ -141,25 +142,25 @@ class K2Functional(RSFunctional):
             :param char - число которое вводим на К2-82
         """
         if char == '1':
-            self.send_code(b'0x01')
+            self.send_code(CODES['1'])
         elif char == '2':
-            self.send_code(b'0x02')
+            self.send_code(CODES['2'])
         elif char == '3':
-            self.send_code(b'0x03')
+            self.send_code(CODES['3'])
         elif char == '4':
-            self.send_code(b'0x04')
+            self.send_code(CODES['4'])
         elif char == '5':
-            self.send_code(b'0x05')
+            self.send_code(CODES['5'])
         elif char == '6':
-            self.send_code(b'0x06')
+            self.send_code(CODES['6'])
         elif char == '7':
-            self.send_code(b'0x07')
+            self.send_code(CODES['7'])
         elif char == '8':
-            self.send_code(b'0x08')
+            self.send_code(CODES['8'])
         elif char == '9':
-            self.send_code(b'0x09')
+            self.send_code(CODES['9'])
         elif char == '0':
-            self.send_code(b'0x00')
+            self.send_code(CODES['0'])
         elif char == '.' or char == ',':
-            self.send_code(b'0x10')
+            self.send_code(CODES['.'])
         time.sleep(0.1)

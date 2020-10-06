@@ -3,7 +3,8 @@ import random, time
 from functional import RSFunctional
 from logging_settings import event_log
 from PyQt5.QtCore import *
-from settings import com_rs
+from settings import com_rs, CODES, CHECK_TX_CODES, CHECK_RX_CODES
+
 
 
 class NoRSError(Exception):
@@ -46,24 +47,25 @@ class Check(QObject):
         super().__init__()
 
         self.f = 136.000
-        self.serial_number = ['', True]
-        self.dev = [0, False]
-        self.p = [random.randint(20, 24) / 10, True]
-        self.high_p = [random.randint(45, 50) / 10, True]
-        self.kg = [0, True]
-        self.chm_u = [0, True]
+        self.serial_number = {'value': '', 'is_correct': True}
+        self.dev = {'value': 0, 'is_correct': False}
+        self.p = {'value': '-', 'is_correct': True}
+        self.high_p = {'value': '-', 'is_correct': True}
+        self.kg = {'value': 0, 'is_correct': True}
+        self.chm_u = {'value': 0, 'is_correct': True}
         self.chm = 0
-        self.chm_max = [0, True]
-        self.selectivity_rc = [random.randint(20, 24) / 100, True]
-        self.out_pow = [0, True]
-        self.out_pow_vt =  ['>0.5', True]
-        self.selectivity = [random.randint(70, 71), True]
-        self.out_kg = [0, True]
-        self.noise_reduction = [25, True]
-        # self.noise_reduction = [random.randint(15, 19) / 100, True]
-        self.i = [50, True]
-        self.i_rc = [random.randint(37, 40) * 10, True]
-        self.discharge_alarm = [random.randint(59, 61) / 10, True]
+        self.chm_max = {'value': 0, 'is_correct': True}
+        self.selectivity_rc = {'value': random.randint(20, 24) / 100, 'is_correct': True}
+        self.out_pow = {'value': 0, 'is_correct': True}
+        self.out_pow_vt =  {'value': '>0.5', 'is_correct': True}
+        self.selectivity = {'value': random.randint(70, 71), 'is_correct': True}
+        self.out_kg = {'value': 0, 'is_correct': True}
+        self.noise_reduction = {'value': 25, 'is_correct': True}
+        # self.noise_reduction = {'value': random.randint(15, 19) / 100, 'is_correct': True}
+        self.i = {'value': 50, 'is_correct': True}
+        self.i_rc = {'value': random.randint(37, 40) * 10, 'is_correct': True}
+        self.discharge_alarm = {'value': random.randint(59, 61) / 10, 'is_correct': True}
+        self.charge = self.manipulator = {'value': '-', 'is_correct': True}
 
 
         self.data = set()
@@ -104,7 +106,7 @@ class Check(QObject):
             self.k2_functional.com.close()
 
             # Если проверяем Моторолу, то считываем с нее серийный номер
-            self.get_serial_number()
+            self.serial_number['value'] = self.get_serial_number()
 
             # Сигнал об успешном завершениии. Передает параметры РС после проверки
             self.check_status.emit({"message" :'Проверка завершена успешно',
@@ -112,54 +114,64 @@ class Check(QObject):
                                         self.serial_number, self.p, self.high_p, self.dev, self.kg, self.chm_u,
                                         self.chm_max, self.selectivity_rc, self.out_pow, self.out_pow_vt,
                                         self.selectivity, self.out_kg, self.noise_reduction, self.i, self.i_rc,
-                                        self.discharge_alarm
+                                        self.discharge_alarm, self.charge, self.manipulator,
                                     ]})
 
         except AttributeError as exc:
-            print(exc)
-            event_log.error('COM port connecting error')
-            self.check_status.emit({"message": 'Не удается соедениться с {}'.format(self.k2_functional.port),
-                                    "params": None})
+            event_log.error(exc)
+            self.check_status.emit({
+                "message": 'Не удается соедениться с {}'.format(self.k2_functional.port),
+                "params": None
+            })
         except NoRSError as no_rs:
             event_log.warning('RS connecting error')
-            self.check_status.emit({"message": no_rs.error_message, "params": None})
+            self.check_status.emit({
+                "message": no_rs.error_message,
+                "params": None
+            })
         except CancelError as cancel:
             event_log.info('Cancel check')
-            self.check_status.emit({"message": cancel.error_message, "params": None})
+            self.check_status.emit({
+                "message": cancel.error_message,
+                "params": None
+            })
         except StartError as algorithm_er:
             event_log.warning('Start check error')
-            self.check_status.emit({"message": algorithm_er.error_message, "params": None})
+            self.check_status.emit({
+                "message": algorithm_er.error_message,
+                "params": None
+            })
         except Exception as ex:
             event_log.error(ex)
-            self.check_status.emit({"message": "Неизвестная ошибка, дайте пизды производителю", "params": None})
+            self.check_status.emit({
+                "message": "Неизвестная ошибка, дайте пизды производителю",
+                "params": None
+            })
 
 
     def check_transmitter(self):
         """ Проверка передатчика
         """
         if self.k2_functional.model == 'Motorola':
-            self.chm_u[0] = 9.5
+            self.chm_u['value'] = 9.5
         elif self.k2_functional.model == 'Альтавия':
-            self.chm_u[0] = 15
-            self.i[0] = 40
-            self.selectivity_rc[0] = random.randint(18, 20) / 100
-            self.noise_reduction[0] = random.randint(17, 18) / 100
-            self.i_rc[0] = random.randint(11, 13) * 10
+            self.chm_u['value'] = 15
+            self.i['value'] = 40
+            self.selectivity_rc['value'] = random.randint(18, 20) / 100
+            self.noise_reduction['value'] = random.randint(17, 18) / 100
+            self.i_rc['value'] = random.randint(11, 13) * 10
         elif self.k2_functional.model == 'Icom':
-            self.chm_u[0] = 16
-            self.i[0] = 70
-            self.i_rc[0] = random.randint(18, 23) * 10
+            self.chm_u['value'] = 16
+            self.i['value'] = 70
+            self.i_rc['value'] = random.randint(18, 23) * 10
 
-        functions = [b'0x26', b'0x20', b'0x29', b'0x20', b'0x33', b'0x15', b'0x20', b'0x17',
-                     b'0x15', b'0x20', b'0x17', b'0x15', b'0x20', b'0x16', b'0x17', b'0x15',
-                     b'0x15', b'0x20', b'0x17', b'0x00', b'0x10', b'0x05', b'0x13', b'0x27',
-                     b'0x03', b'0x13', b'0x17', b'0x01', b'0x13', b'0x23']
+        functions = CHECK_TX_CODES
         timeout_02_functions = [1, 3, 4, 6, 9, 10, 12, 13, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
         percents = 0
-        self.k2_functional.send_code(b'0x23')
+        self.k2_functional.send_code(CODES['УСТ'])
         for step, function in enumerate(functions):
             if self.k2_functional.cancel:
-                self.k2_functional.send_code(b'0x20')
+                self.k2_functional.send_code(CODES['ОТКЛ'])
                 self.k2_functional.check = False
                 self.k2_functional.cancel = False
                 raise CancelError
@@ -189,13 +201,22 @@ class Check(QObject):
             if step in [0, 2, 16]:
                 time.sleep(5)
 
+            if step == 2:
+                self.next_message_box.emit([
+                    'Проверка передатчика',
+                    'Снимите с передачи и переключите уровень мощности'
+                ])
+                time.sleep(0.5)
+                while not self.k2_functional.continue_thread: pass
+                time.sleep(3)
+
             # Чувствительность модуляционного входа
             elif step == 5:
-                for char in str(self.chm_u[0]):
+                for char in str(self.chm_u['value']):
                     self.k2_functional.numbers_entry(char=char)
                 time.sleep(0.2)
                 # for _ in range(2):
-                self.k2_functional.send_code(b'0x13')
+                self.k2_functional.send_code(CODES['mV/kHz'])
                 time.sleep(4)
                 while self.chm < 2.95 or self.chm > 3.05:
                     for _ in range(10):
@@ -207,14 +228,14 @@ class Check(QObject):
                         difference = (3.0 - self.chm) / 0.025
                         difference = round(difference)
                         to_add = difference / 10
-                        self.chm_u[0] = round(self.chm_u[0] + to_add, 1)
-                        for char in str(self.chm_u[0]):
+                        self.chm_u['value'] = round(self.chm_u['value'] + to_add, 1)
+                        for char in str(self.chm_u['value']):
                             self.k2_functional.numbers_entry(char=char)
                         time.sleep(0.2)
-                        self.k2_functional.send_code(b'0x13')
+                        self.k2_functional.send_code(CODES['mV/kHz'])
                         time.sleep(6)
-                if self.chm_u[0] >= 20 or self.chm_u[0] == 1:
-                    self.chm_u[1] = False
+                if self.chm_u['value'] >= 20 or self.chm_u['value'] == 1:
+                    self.chm_u['is_correct'] = False
 
             # КНИ
             elif step == 8:
@@ -253,18 +274,17 @@ class Check(QObject):
             Закрывает COM порт
         """
         for _ in range(4):
-            self.k2_functional.send_code(b'0x20')
+            self.k2_functional.send_code(CODES['ОТКЛ'])
             time.sleep(0.1)
         self.k2_functional.check = False
-        self.k2_functional.send_code(b'0x23')
+        self.k2_functional.send_code(CODES['УСТ'])
         self.k2_functional.com.close()
 
 
     def check_receiver(self):
         """ Проверка приёмника
         """
-        functions = [ b'0x23', b'0x33', b'0x17', b'0x15', b'0x13', b'0x15',
-                      b'0x00', b'0x10', b'0x02', b'0x05', b'0x14']#, b'0x20', b'0x17']
+        functions = CHECK_RX_CODES
 
         for step, function in enumerate(functions):
             if self.k2_functional.cancel:
@@ -299,7 +319,7 @@ class Check(QObject):
     def get_noise_reduction(self):
         """ Проверка порога срабатывания шумоподавителя
         """
-        # noise_reduction = 25
+        noise_reduction = 25
         flag = True
         while flag:
             self.data = set()
@@ -308,28 +328,16 @@ class Check(QObject):
             for line in self.data:
                 data_list.append(line.decode('cp866'))
             for line in data_list:
-                if 'U= ' in line:
-                    u = float(line[3:-5])
-                    if float(u) > 10 or float(u) == 2.0: flag = False
-                    else:
-                        self.noise_reduction[0] -= 1
-                        for code in ['0', '.', str(self.noise_reduction[0] // 10), str(self.noise_reduction[0] % 10)]:
-                            self.k2_functional.numbers_entry(code)
-                        self.k2_functional.send_code(b'0x14')
-                        time.sleep(1)
-                        if self.noise_reduction[0] == 10:
-                            # self.noise_reduction[0] = 0.1
-                            self.noise_reduction[1] = False
-                            flag = False
+                flag, noise_reduction = self.noise_reduction_decrypt(flag, line, noise_reduction)
 
-        self.noise_reduction[0] /= 100
+        self.noise_reduction['value'] = noise_reduction / 100
         for _ in range(2):
-            self.k2_functional.send_code(b'0x20')
+            self.k2_functional.send_code(CODES['ОТКЛ'])
         time.sleep(0.2)
-        self.k2_functional.send_code(b'0x17')
+        self.k2_functional.send_code(CODES['ВНИЗ'])
         for code in ['0', '.', '5']:
             self.k2_functional.numbers_entry(code)
-        self.k2_functional.send_code(b'0x13')
+        self.k2_functional.send_code(CODES['mV/kHz'])
 
 
     def take_result(self, func):
@@ -353,46 +361,65 @@ class Check(QObject):
 
         for line in data_list:
             if 'Kг= ' in line:
-                self.kg[0] = float(line[4:-4])
-                if self.kg[0] >= 3.0 or self.kg[0] == 0: self.kg[1] = False
+                self.kg['value'] = float(line[4:-4])
+                if self.kg['value'] >= 3.0 or self.kg['value'] == 0: self.kg['is_correct'] = False
             elif 'P= ' in line:
-                value = float(line[3:-6])
-                if value < 4:
-                    self.p[0] = value
-                elif value > 5:
-                    self.high_p[0] = 5.0
-                else:
-                    self.high_p[0] = value
+                self.decrypt_power(line)
             elif 'ЧМ+= ' in line:
-                if float(line[5:-6]) != self.chm_u[0]:
+                if float(line[5:-6]) != self.chm_u['value']:
                     self.param_list.append(float(line[5:-6]))
             elif 'ЧМмах= ' in line:
-                self.chm_max[0] = float(line[7:-6])
-                if self.chm_max[0] >= 5 or self.chm_max == 0: self.chm_max[1] = False
+                self.chm_max['value'] = float(line[7:-6])
+                if self.chm_max['value'] >= 5 or self.chm_max == 0: self.chm_max[1] = False
             elif 'f=' in line:
-                line = line[2:9]
-                if line[6] == '6' or line[6] == '4':
-                    line = line[:3] + line[4:]
-                    line = line[:5] + '5'
-                    line = line[:3] + '.' + line[3:]
-                    self.f = float(line)
-                elif line[6] == '5':
-                    self.f = float(line)
-                    self.f = round(self.f, 3)
-                else:
-                    self.f = float(line)
-                    self.f = round(self.f, 2)
+                self.f = self.decrypt_frequency(line)
             elif 'Отклонение= ' in line:
-                self.dev[0] = float(line[12:-6])
-                self.dev[0] *= 1000
-                self.dev[0] = int(self.dev[0])
-                self.dev[1] = False if self.dev[0] > 300 else True
+                dev = float(line[12:-6])
+                dev *= 1000
+                self.dev['value'] = int(dev)
+                self.dev['is_correct'] = False if self.dev['value'] > 300 else True
 
         # Если отключена макс девиация, значение рандомное
-        if self.chm_max[0] == 0.0:
-            self.chm_max[0] = random.randint(445, 491) / 100
+        if self.chm_max['value'] == 0.0:
+            self.chm_max['value'] = random.randint(445, 491) / 100
 
         self.data = set()
+
+
+    def decrypt_power(self, line):
+        """
+        Расшифровка выходной мащности радиостанции
+        :param line: Строка со значением мощности полученная с К2-82 через COM порт
+        """
+        value = float(line[3:-6])
+        if value == 0:
+            return False
+        if value < 4:
+            self.p['value'] = value
+        elif value > 5:
+            self.high_p['value'] = 5.0
+        else:
+            self.high_p['value'] = value
+
+
+    def decrypt_frequency(self, line):
+        """
+        Расшифровка частоты радиостанции
+        :param line: Строка со значением частоты полученная с К2-82 через COM порт
+        :return: расшифрованная и отформатированная частота
+        """
+        line = line[2:9]
+        if line[6] == '6' or line[6] == '4':
+            line = line[:3] + line[4:]
+            line = line[:5] + '5'
+            line = line[:3] + '.' + line[3:]
+            return float(line)
+        elif line[6] == '5':
+            f = float(line)
+            return round(f, 3)
+        else:
+            f = float(line)
+            return round(f, 2)
 
 
     def description_rc(self, data_list):
@@ -406,27 +433,58 @@ class Check(QObject):
             if 'Kг= ' in line:
                 self.param_list.append(float(line[4:-4]))
         if len(self.param_list) >=2:
-            self.out_kg[0] = self.param_list[-2]
+            self.out_kg['value'] = self.param_list[-2]
         else:
-            self.out_kg[0] = self.param_list[0]
+            self.out_kg['value'] = self.param_list[0]
 
-        if self.out_kg[0] >= 5 or self.out_kg[0] == 0:
-                self.out_kg[1] = False
+        if self.out_kg['value'] >= 5 or self.out_kg['value'] == 0:
+                self.out_kg['is_correct'] = False
 
         for line in data_list:
             if 'U= ' in line:
                 self.param_list.append(float(line[3:-5]))
         if len(self.param_list) >=2:
-            self.out_pow[0] = self.param_list[-2]
+            self.out_pow['value'] = self.param_list[-2]
         else:
-            self.out_pow[0] = self.param_list[0]
+            self.out_pow['value'] = self.param_list[0]
 
-        if self.out_pow[0] < 2.0 or self.out_pow[0] == 0:
-            self.out_pow[1] = False
-        elif self.out_pow[0] > 5.0:
-            self.out_pow[0] = 5.0
+        if self.out_pow['value'] < 2.0 or self.out_pow['value'] == 0:
+            self.out_pow['is_correct'] = False
+        elif self.out_pow['value'] > 5.0:
+            self.out_pow['value'] = 5.0
 
         self.data = set()
+
+
+    def noise_reduction_decrypt(self, flag, line, noise_reduction):
+        """
+        Расшифровка параметра порога срабатывания шумоподавителя
+        :param flag: - Пока флаг True выполняется счтывание с К2-82 и корректировка напряжения
+        :param line: - Строка значений К2-82 которая пришла с ком порта
+        :param noise_reduction: - значение порога срабатывание шумоподавителя
+        :return: Возвращаем флаг который определяет найдено значение или нет и само значение шумоподавителя
+        """
+        if 'Kг=' in line:
+            kg = float(line[3:-4])
+            if kg == 99.0:
+                noise_reduction += 1
+                flag = False
+        if 'U= ' in line:
+            print(line)
+            u = float(line[3:-5])
+            if float(u) > 10 or float(u) == 2.0: flag = False
+            elif ' мВ' in line: flag = False
+            else:
+                noise_reduction -= 1
+                entry_list = ['0', '.', str(noise_reduction // 10), str(noise_reduction % 10)]
+                for char in entry_list:
+                    self.k2_functional.numbers_entry(char)
+                self.k2_functional.send_code(CODES['uV/Hz'])
+                time.sleep(1)
+                if noise_reduction == 10:
+                    self.noise_reduction['is_correct'] = False
+                    flag = False
+        return flag, noise_reduction
 
 
     def get_serial_number(self):
@@ -436,6 +494,5 @@ class Check(QObject):
             rs = RSFunctional()
             try:
                 rs.connect_com_port(com_rs)
-                self.serial_number[0] = rs.get_serial()
-            except Exception as ex:
-                event_log.error(ex)
+                return rs.get_serial()
+            except Exception as ex: event_log.error(ex)
