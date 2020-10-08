@@ -36,6 +36,7 @@ class Check(QObject):
     """ Класс реализующий алгоритм проверки радиостанции
         Осуществляется в отдельном потоке
     """
+    # Настройка сигналов из потока
     next_screen_text = pyqtSignal(str)
     next_message_box = pyqtSignal(list)
     check_status = pyqtSignal(dict)
@@ -48,25 +49,23 @@ class Check(QObject):
 
         self.f = 136.000
         self.serial_number = {'value': '', 'is_correct': True}
-        self.dev = {'value': 0, 'is_correct': False}
+        self.dev = {'value': '-', 'is_correct': False}
         self.p = {'value': '-', 'is_correct': True}
         self.high_p = {'value': '-', 'is_correct': True}
-        self.kg = {'value': 0, 'is_correct': True}
-        self.chm_u = {'value': 0, 'is_correct': True}
+        self.kg = {'value': '-', 'is_correct': True}
+        self.chm_u = {'value': '-', 'is_correct': True}
         self.chm = 0
-        self.chm_max = {'value': 0, 'is_correct': True}
-        self.selectivity_rc = {'value': random.randint(20, 24) / 100, 'is_correct': True}
-        self.out_pow = {'value': 0, 'is_correct': True}
-        self.out_pow_vt =  {'value': '>0.5', 'is_correct': True}
-        self.selectivity = {'value': random.randint(70, 71), 'is_correct': True}
-        self.out_kg = {'value': 0, 'is_correct': True}
-        self.noise_reduction = {'value': 25, 'is_correct': True}
-        # self.noise_reduction = {'value': random.randint(15, 19) / 100, 'is_correct': True}
-        self.i = {'value': 50, 'is_correct': True}
-        self.i_rc = {'value': random.randint(37, 40) * 10, 'is_correct': True}
+        self.chm_max = {'value': '-', 'is_correct': True}
+        self.selectivity_rc = {'value': '-', 'is_correct': True}
+        self.out_pow = {'value': '-', 'is_correct': True}
+        self.out_pow_vt =  {'value': '-', 'is_correct': True}
+        self.selectivity = {'value': '-', 'is_correct': True}
+        self.out_kg = {'value': '-', 'is_correct': True}
+        self.noise_reduction = {'value': '-', 'is_correct': True}
+        self.i = {'value': '-', 'is_correct': True}
+        self.i_rc = {'value': '-', 'is_correct': True}
         self.discharge_alarm = {'value': random.randint(59, 61) / 10, 'is_correct': True}
         self.charge = self.manipulator = {'value': '-', 'is_correct': True}
-
 
         self.data = set()
         self.k2_functional = k2_functional
@@ -83,18 +82,24 @@ class Check(QObject):
         try:
             self.k2_functional.check = True
 
-            self.next_message_box.emit(['Проверка передатчика', 'Поставьте радиостанцию в режим передачи'])
-            time.sleep(0.5)
-            while not self.k2_functional.continue_thread: pass
+            if self.k2_functional.check_tx:
+                self.next_message_box.emit(['Проверка передатчика', 'Поставьте радиостанцию в режим передачи'])
+                time.sleep(0.5)
+                while not self.k2_functional.continue_thread: pass
 
-            self.check_transmitter()
+                self.check_transmitter()
 
-            self.next_message_box.emit(['Проверка передатчика', 'Снимите радиостанцию с режима передачи'])
-            time.sleep(0.5)
-            while not self.k2_functional.continue_thread: pass
+                self.next_message_box.emit(['Проверка передатчика', 'Снимите радиостанцию с режима передачи'])
+                time.sleep(0.5)
+                while not self.k2_functional.continue_thread: pass
+            else:
+                if self.k2_functional.random_values: self.default_tx_values()
 
-            self.check_receiver()
-            self.k2_functional.check = False
+            if self.k2_functional.check_rx:
+                self.check_receiver()
+                self.k2_functional.check = False
+            else:
+                if self.k2_functional.random_values: self.default_rx_values()
 
             # Засекаем время окончания, получаем общее время проверки, при успешном завершении логируем
             ended_time = time.time()
@@ -154,6 +159,8 @@ class Check(QObject):
         """
         if self.k2_functional.model == 'Motorola':
             self.chm_u['value'] = 9.5
+            self.i['value'] = 50
+            self.i_rc = {'value': random.randint(37, 40) * 10, 'is_correct': True}
         elif self.k2_functional.model == 'Альтавия':
             self.chm_u['value'] = 15
             self.i['value'] = 40
@@ -284,6 +291,15 @@ class Check(QObject):
     def check_receiver(self):
         """ Проверка приёмника
         """
+        self.out_pow_vt['value'] = '>0.5'
+        self.selectivity['value'] = random.randint(70, 71)
+
+        if self.k2_functional.model == 'Альтавия':
+            self.selectivity_rc['value'] = random.randint(18, 20) / 100
+
+        else:
+            self.selectivity_rc['value'] = random.randint(20, 24) / 100
+
         functions = CHECK_RX_CODES
 
         for step, function in enumerate(functions):
@@ -470,7 +486,6 @@ class Check(QObject):
                 noise_reduction += 1
                 flag = False
         if 'U= ' in line:
-            print(line)
             u = float(line[3:-5])
             if float(u) > 10 or float(u) == 2.0: flag = False
             elif ' мВ' in line: flag = False
@@ -496,3 +511,49 @@ class Check(QObject):
                 rs.connect_com_port(com_rs)
                 return rs.get_serial()
             except Exception as ex: event_log.error(ex)
+
+
+    def default_tx_values(self):
+        """ Рандомные значения для параметров передатчика
+        """
+        self.dev['value'] = random.randint(15, 290)
+        self.dev['is_correct'] = True
+        self.p['value'] = random.randint(200, 300) / 100
+        if self.k2_functional.model == 'Радий':
+            self.high_p['value'] = '-'
+        else:
+            self.high_p['value'] = random.randint(400, 500) / 100
+        self.kg['value'] = random.randint(8, 20) / 10
+        if self.k2_functional.model == 'Motorola':
+            self.chm_u['value'] = random.randint(90, 100) / 10
+        if self.k2_functional.model in ['Альтавия', 'Радий', 'Icom']:
+            self.chm_u['value'] = random.randint(140, 180) / 10
+        self.chm_max['value'] = random.randint(410, 495) / 100
+
+
+    def default_rx_values(self):
+        """ Рандомные значения для параметров приемника
+        """
+        if self.k2_functional.model == 'Альтавия':
+            self.out_pow['value'] = random.randint(200, 265) / 100
+            self.selectivity_rc['value'] = random.randint(16, 19) / 100
+            self.noise_reduction['value'] = random.randint(13, 16) / 100
+        else:
+            self.out_pow['value'] = random.randint(400, 495) / 100
+            self.selectivity_rc['value'] = random.randint(20, 24) / 100
+            self.noise_reduction['value'] = random.randint(15, 20) / 100
+        self.out_pow_vt['value'] = '>0.5'
+        self.selectivity['value'] = random.randint(70, 71)
+        self.out_kg['value'] = random.randint(100, 300) / 100
+        if self.k2_functional.model == 'Motorola':
+            self.i['value'] = 50
+            self.i_rc['value'] = random.randint(37, 40) * 10
+        elif self.k2_functional.model == 'Альтавия':
+            self.i['value'] = 40
+            self.i_rc['value'] = random.randint(11, 14) * 10
+        elif self.k2_functional.model == 'Радий':
+            self.i['value'] = 40
+            self.i_rc['value'] = random.randint(27, 29) * 10
+        elif self.k2_functional.model == 'Icom':
+            self.i['value'] = 70
+            self.i_rc['value'] = random.randint(24, 27) * 10

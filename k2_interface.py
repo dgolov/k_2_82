@@ -6,7 +6,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QThread
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QAction, qApp, QMessageBox
 from PyQt5.QtGui import QIcon
-from functional import K2Functional
+from functional import K2Functional, RSFunctional
 from check import Check
 from logging_settings import event_log
 from utils import DecibelCalc
@@ -27,10 +27,12 @@ class UiMainWindow(QMainWindow):
         self.row = 0
         self.result_table = QtWidgets.QTableWidget(self.main_window)
         self.k2_functional = K2Functional()
+        self.rs_functional = RSFunctional()
         self.choice_of_the_model = QtWidgets.QComboBox(self.main_window)
-        self.get_frequency = QtWidgets.QTextEdit(self.main_window)
+        self.get_frequency = QtWidgets.QLineEdit(self.main_window)
         self.thread = None
         self.db_calc = DecibelCalc()
+        self.init_ui()
 
 
     def init_ui(self):
@@ -245,6 +247,7 @@ class UiMainWindow(QMainWindow):
         self.choice_of_the_model.addItem(icon4, "   Motorola")
         self.choice_of_the_model.addItem(icon4, "   Альтавия")
         self.choice_of_the_model.addItem(icon4, "   Icom")
+        self.choice_of_the_model.addItem(icon4, "   Радий")
 
         check_rs_button = QtWidgets.QPushButton('Проверка параметров', self.main_window)
         check_rs_button.setGeometry(QtCore.QRect(30, 520, 171, button_height))
@@ -260,31 +263,34 @@ class UiMainWindow(QMainWindow):
         button_cancel.setIcon(icon2)
         button_cancel.clicked.connect(self.button_cancel_click)
 
-        #TODO Доделать
-        tx_flag = QtWidgets.QCheckBox('Проверять приёмник', self.main_window)
+        tx_flag = QtWidgets.QCheckBox('Проверять передатчик', self.main_window)
         tx_flag.setGeometry(QtCore.QRect(32, 620, 161, 21))
         tx_flag.toggle()
-        # tx_flag.stateChanged.connect(None)
+        tx_flag.stateChanged.connect(self.tx_flag_click)
 
         deviation_flag = QtWidgets.QCheckBox('Пропуск max девиации', self.main_window)
         deviation_flag.setGeometry(QtCore.QRect(32, 670, 161, 21))
         deviation_flag.stateChanged.connect(self.deviation_flag_click)
 
-        rx_flag = QtWidgets.QCheckBox('Проверять передатчик', self.main_window)
+        rx_flag = QtWidgets.QCheckBox('Проверять приёмник', self.main_window)
         rx_flag.setGeometry(QtCore.QRect(32, 720, 161, 21))
         rx_flag.toggle()
-        # rx_flag.stateChanged.connect(None)
+        rx_flag.stateChanged.connect(self.rx_flag_click)
 
         # Справа от прибора
-        self.get_frequency.setGeometry(QtCore.QRect(1520, 50, 140, 28))
-        label_f = QtWidgets.QLabel('f:', self.main_window)
-        label_f.setGeometry(QtCore.QRect(1500, 46, 21, 28))
         font = QtGui.QFont()
         font.setPointSize(10)
+        label_f_info = QtWidgets.QLabel('Установить частоту на К2-82:', self.main_window)
+        label_f_info.setGeometry(QtCore.QRect(1500, 46, 250, 28))
+        label_f_info.setFont(font)
+        self.get_frequency.setGeometry(QtCore.QRect(1520, 91, 140, button_height - 2))
+        self.get_frequency.returnPressed.connect(self.get_frequency_button_click)
+        label_f = QtWidgets.QLabel('f:', self.main_window)
+        label_f.setGeometry(QtCore.QRect(1500, 88, 20, button_height))
         label_f.setFont(font)
 
-        get_frequency_button = QtWidgets.QPushButton('  Установить частоту ', self.main_window)
-        get_frequency_button.setGeometry(QtCore.QRect(1490, 90, 171, button_height))
+        get_frequency_button = QtWidgets.QPushButton('   Ввод   ', self.main_window)
+        get_frequency_button.setGeometry(QtCore.QRect(1670, 90, 100, button_height))
         icon3 = QtGui.QIcon()
         icon3.addPixmap(QtGui.QPixmap("images\\frequency.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         get_frequency_button.setIcon(icon3)
@@ -423,12 +429,18 @@ class UiMainWindow(QMainWindow):
         help_action = QAction('&О программе', self)
         help_action.setShortcut('Ctrl+F1')
         help_action.triggered.connect(self.show_info)
-        com1_action = QAction('&COM1', self)
-        com1_action.triggered.connect(lambda: self.choice_com_port(com_port='COM1'))
-        com2_action = QAction('&COM2', self)
-        com2_action.triggered.connect(lambda: self.choice_com_port(com_port='COM2'))
-        com3_action = QAction('&COM3', self)
-        com3_action.triggered.connect(lambda: self.choice_com_port(com_port='COM3'))
+        k2_com1_action = QAction('&COM1', self)
+        k2_com1_action.triggered.connect(lambda: self.choice_com_port(com_port='COM1', device='К2-82'))
+        k2_com2_action = QAction('&COM2', self)
+        k2_com2_action.triggered.connect(lambda: self.choice_com_port(com_port='COM2', device='К2-82'))
+        k2_com3_action = QAction('&COM3', self)
+        k2_com3_action.triggered.connect(lambda: self.choice_com_port(com_port='COM3', device='К2-82'))
+        rs_com1_action = QAction('&COM1', self)
+        rs_com1_action.triggered.connect(lambda: self.choice_com_port(com_port='COM1', device='RS'))
+        rs_com2_action = QAction('&COM2', self)
+        rs_com2_action.triggered.connect(lambda: self.choice_com_port(com_port='COM2', device='RS'))
+        rs_com3_action = QAction('&COM3', self)
+        rs_com3_action.triggered.connect(lambda: self.choice_com_port(com_port='COM3', device='RS'))
         decibel_calc_action = QAction(QIcon('images\\calc.ico'), '&Калькулятор децибел', self)
         decibel_calc_action.triggered.connect(self.db_calc.show)
 
@@ -436,10 +448,14 @@ class UiMainWindow(QMainWindow):
         file_menu.addAction(check_action)
         file_menu.addAction(exit_action)
         settings_menu = menu_bar.addMenu('&Настройки')
-        com_menu = settings_menu.addMenu('&COM порт')
-        com_menu.addAction(com1_action)
-        com_menu.addAction(com2_action)
-        com_menu.addAction(com3_action)
+        k2_com_menu = settings_menu.addMenu('&COM порт К2-82')
+        rs_com_menu = settings_menu.addMenu('&COM порт радиостанции')
+        k2_com_menu.addAction(k2_com1_action)
+        k2_com_menu.addAction(k2_com2_action)
+        k2_com_menu.addAction(k2_com3_action)
+        rs_com_menu.addAction(rs_com1_action)
+        rs_com_menu.addAction(rs_com2_action)
+        rs_com_menu.addAction(rs_com3_action)
         utils_menu = menu_bar.addMenu('&Утилиты')
         utils_menu.addAction(decibel_calc_action)
         help_menu = menu_bar.addMenu('&Справка')
@@ -542,12 +558,30 @@ class UiMainWindow(QMainWindow):
         Кнопка установки частоты на К2-82
         :param event - событие отмены, кнопка с клавиатуры
         """
-        frequency = self.get_frequency.toPlainText()
+        frequency = self.get_frequency.text()
+        if frequency == 'iddqd':
+            if not self.k2_functional.random_values:
+                self.screen_text.setText('GOD MODE ACTIVATED')
+                self.k2_functional.random_values = True
+            else:
+                self.screen_text.setText('GOD MODE DEACTIVATED')
+                self.k2_functional.random_values = False
+            return 0
         try:
             self.screen_text.setText(self.k2_functional.input_frequency(frequency))
         except AttributeError:
             event_log.error('COM port connecting error')
             self.screen_text.setText('Не удается соедениться с {}'.format(self.k2_functional.port))
+
+
+    def tx_flag_click(self, state):
+        """ Флаг статуса проверки передатчика
+            :param state - статус флажка проверки передатчика
+        """
+        if state == Qt.Checked:
+            self.k2_functional.check_tx = True
+        else:
+            self.k2_functional.check_tx = False
 
 
     def deviation_flag_click(self, state):
@@ -560,13 +594,29 @@ class UiMainWindow(QMainWindow):
             self.k2_functional.check_deviation_time = 33
 
 
-    def choice_com_port(self, com_port):
+    def rx_flag_click(self, state):
+        """ Флаг статуса проверки приёмника
+            :param state - статус флажка проверки приёмника
+        """
+        if state == Qt.Checked:
+            self.k2_functional.check_rx = True
+        else:
+            self.k2_functional.check_rx = False
+
+
+    def choice_com_port(self, com_port, device):
         """ Получение информации о состоянии подключения COM порта
             :param com_port - название COM порта
         """
-        global com
-        com = com_port
-        is_connect = self.k2_functional.connect_com_port(com_port)
+        if device == 'К2-82':
+            functional = self.k2_functional
+            global com
+            com = com_port
+        else:
+            functional = self.rs_functional
+            global com_rs
+            com_rs = com_port
+        is_connect = functional.connect_com_port(com_port)
         if is_connect:
             text = 'Соединение с {} установлено'.format(com_port)
             self.statusBar().showMessage('COM: {}'.format(com_port))

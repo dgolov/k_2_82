@@ -13,7 +13,6 @@ if __name__ == '__main__':
     app.setWindowIcon(icon)
 
     win = UiMainWindow()
-    win.init_ui()
     win.show()
 
     sys.exit(app.exec_())

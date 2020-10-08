@@ -83,17 +83,19 @@ class K2Functional(RSFunctional):
         * Установка частоты на К2-82
         * Отправка числовых значений на К2-82
     """
-
     COM = 'COM2'
     model = 'Motorola'
 
     def __init__(self):
         super(K2Functional, self).__init__()
         self.check_deviation_time = 33
+        self.check_tx = True            # Проверять передатчик
+        self.check_rx = True            # Проверять приёмник
         self.cancel = False
         self.check = False
         self.excel_book = ImportToExcel()
-        self.continue_thread = True
+        self.continue_thread = True     # Продолжать выполнение потока. Останавливается при всплывающих сообщениях
+        self.random_values = False      # Рандомные значения
 
 
     def send_code(self, code, command=None):
@@ -116,21 +118,26 @@ class K2Functional(RSFunctional):
             :param f - частота
         """
         error_message = 'Введите корректную частоту (например 151.825 или 151825)'
-
-        if len(f) == 3:
-            f += '.000'
-        elif len(f) == 5:
-            f += '00'
-        elif len(f) == 6:
-            if f[3] == '.':
-                f += '0'
+        for char in f:
+            if char.isalpha(): return error_message
+        if self.connect_com_port(self.com.port):
+            if len(f) == 3:
+                f += '.000'
+            elif len(f) == 5:
+                f += '00'
+            elif len(f) == 6:
+                if f[3] == '.':
+                    f += '0'
+                else:
+                    f = f[:3] + '.' + f[3:]
+            if len(f) == 7:
+                for char in f:
+                    self.numbers_entry(char=char)
             else:
-                f = f[:3] + '.' + f[3:]
-        if len(f) == 7:
-            for char in f:
-                self.numbers_entry(char=char)
+                return error_message
         else:
-            return error_message
+            return 'Не удается соедениться с ' + self.com.port
+
 
         self.send_code(CODES['V/MHz'])
 
@@ -141,26 +148,8 @@ class K2Functional(RSFunctional):
         """ Отправка числовых значений (цифровая клавиатура на К2-82)
             :param char - число которое вводим на К2-82
         """
-        if char == '1':
-            self.send_code(CODES['1'])
-        elif char == '2':
-            self.send_code(CODES['2'])
-        elif char == '3':
-            self.send_code(CODES['3'])
-        elif char == '4':
-            self.send_code(CODES['4'])
-        elif char == '5':
-            self.send_code(CODES['5'])
-        elif char == '6':
-            self.send_code(CODES['6'])
-        elif char == '7':
-            self.send_code(CODES['7'])
-        elif char == '8':
-            self.send_code(CODES['8'])
-        elif char == '9':
-            self.send_code(CODES['9'])
-        elif char == '0':
-            self.send_code(CODES['0'])
+        if char.isnumeric():
+            self.send_code(CODES[char])
         elif char == '.' or char == ',':
             self.send_code(CODES['.'])
         time.sleep(0.1)
