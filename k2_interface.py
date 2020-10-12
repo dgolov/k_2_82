@@ -3,7 +3,7 @@
 #
 import io, csv
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, QThread
+from PyQt5.QtCore import Qt, QThread, QSettings
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QAction, qApp, QMessageBox
 from PyQt5.QtGui import QIcon
 from functional import K2Functional, RSFunctional
@@ -22,18 +22,37 @@ class UiMainWindow(QMainWindow):
         super().__init__()
         self.main_window = QtWidgets.QWidget(self)
         self.k2_frame = QtWidgets.QFrame(self.main_window)
+
+        # Информационного экран
         self.screen_frame = QtWidgets.QFrame(self.k2_frame)
         self.screen_text = QtWidgets.QLabel(self.screen_frame)
+
+        # Настройки COM портов
+        self.k2_com1_action = QAction('&COM1', self)
+        self.k2_com2_action = QAction('&COM2', self)
+        self.k2_com3_action = QAction('&COM3', self)
+        self.rs_com1_action = QAction('&COM1', self)
+        self.rs_com2_action = QAction('&COM2', self)
+        self.rs_com3_action = QAction('&COM3', self)
+
+        # Таблица
         self.row = 0
         self.result_table = QtWidgets.QTableWidget(self.main_window)
+
+        # Функционал К2-82 и радиостанции
         self.k2_functional = K2Functional()
         self.rs_functional = RSFunctional()
+
+        # Интерфейс выбора модели радиостанции и текстовое поле для установки частоты
         self.choice_of_the_model = QtWidgets.QComboBox(self.main_window)
         self.get_frequency = QtWidgets.QLineEdit(self.main_window)
-        self.thread = None
-        self.db_calc = DecibelCalc()
-        self.init_ui()
 
+        self.thread = None # Дополнительный поток для функций проверки радиостанции
+
+        # Дополнительные утилиты
+        self.db_calc = DecibelCalc()
+
+        self.init_ui()
 
     def init_ui(self):
         """ Инициализация интерфейса
@@ -49,17 +68,19 @@ class UiMainWindow(QMainWindow):
         self.init_buttons()
         self.init_table()
         self.init_menu()
+        self.load_settings()
 
         self.setCentralWidget(self.main_window)
 
-        self.k2_functional.connect_com_port(self.k2_functional.COM)
+        self.k2_functional.connect_com_port(self.k2_functional.port)
         try:
             self.k2_functional.com.close()
-            self.screen_text.setText('Соединение с {} установлено'.format(self.k2_functional.COM))
+            self.screen_text.setText('Соединение с {} установлено'.format(self.k2_functional.port))
         except AttributeError:
-            self.screen_text.setText('Не удается соединениться с {}'.format(self.k2_functional.COM))
+            self.screen_text.setText('Не удается соединениться с {}'.format(self.k2_functional.port))
 
-        self.statusBar().showMessage('COM порт К2-82: {}    |   COM порт радиостанции: {}'.format(com, com_rs))
+        self.statusBar().showMessage('COM порт К2-82: {}    |   COM порт радиостанции: {}'.format(
+            self.k2_functional.port, self.rs_functional.port))
 
 
     def init_device(self):
@@ -425,22 +446,22 @@ class UiMainWindow(QMainWindow):
         check_action.triggered.connect(self.check_rs_button_click)
         exit_action = QAction(QIcon('images\\exit.png'), '&Выход', self)
         exit_action.setShortcut('Ctrl+Q')
-        exit_action.triggered.connect(qApp.quit)
+        exit_action.triggered.connect(self.closeEvent)
         help_action = QAction('&О программе', self)
         help_action.setShortcut('Ctrl+F1')
         help_action.triggered.connect(self.show_info)
-        k2_com1_action = QAction('&COM1', self)
-        k2_com1_action.triggered.connect(lambda: self.choice_com_port(com_port='COM1', device='К2-82'))
-        k2_com2_action = QAction('&COM2', self)
-        k2_com2_action.triggered.connect(lambda: self.choice_com_port(com_port='COM2', device='К2-82'))
-        k2_com3_action = QAction('&COM3', self)
-        k2_com3_action.triggered.connect(lambda: self.choice_com_port(com_port='COM3', device='К2-82'))
-        rs_com1_action = QAction('&COM1', self)
-        rs_com1_action.triggered.connect(lambda: self.choice_com_port(com_port='COM1', device='RS'))
-        rs_com2_action = QAction('&COM2', self)
-        rs_com2_action.triggered.connect(lambda: self.choice_com_port(com_port='COM2', device='RS'))
-        rs_com3_action = QAction('&COM3', self)
-        rs_com3_action.triggered.connect(lambda: self.choice_com_port(com_port='COM3', device='RS'))
+        self.k2_com1_action.setCheckable(True)
+        self.k2_com1_action.triggered.connect(lambda: self.choice_com_port(com_port='COM1', device='К2-82'))
+        self.k2_com2_action.setCheckable(True)
+        self.k2_com2_action.triggered.connect(lambda: self.choice_com_port(com_port='COM2', device='К2-82'))
+        self.k2_com3_action.setCheckable(True)
+        self.k2_com3_action.triggered.connect(lambda: self.choice_com_port(com_port='COM3', device='К2-82'))
+        self.rs_com1_action.setCheckable(True)
+        self.rs_com1_action.triggered.connect(lambda: self.choice_com_port(com_port='COM1', device='RS'))
+        self.rs_com2_action.setCheckable(True)
+        self.rs_com2_action.triggered.connect(lambda: self.choice_com_port(com_port='COM2', device='RS'))
+        self.rs_com3_action.setCheckable(True)
+        self.rs_com3_action.triggered.connect(lambda: self.choice_com_port(com_port='COM3', device='RS'))
         decibel_calc_action = QAction(QIcon('images\\calc.ico'), '&Калькулятор децибел', self)
         decibel_calc_action.triggered.connect(self.db_calc.show)
 
@@ -450,12 +471,12 @@ class UiMainWindow(QMainWindow):
         settings_menu = menu_bar.addMenu('&Настройки')
         k2_com_menu = settings_menu.addMenu('&COM порт К2-82')
         rs_com_menu = settings_menu.addMenu('&COM порт радиостанции')
-        k2_com_menu.addAction(k2_com1_action)
-        k2_com_menu.addAction(k2_com2_action)
-        k2_com_menu.addAction(k2_com3_action)
-        rs_com_menu.addAction(rs_com1_action)
-        rs_com_menu.addAction(rs_com2_action)
-        rs_com_menu.addAction(rs_com3_action)
+        k2_com_menu.addAction(self.k2_com1_action)
+        k2_com_menu.addAction(self.k2_com2_action)
+        k2_com_menu.addAction(self.k2_com3_action)
+        rs_com_menu.addAction(self.rs_com1_action)
+        rs_com_menu.addAction(self.rs_com2_action)
+        rs_com_menu.addAction(self.rs_com3_action)
         utils_menu = menu_bar.addMenu('&Утилиты')
         utils_menu.addAction(decibel_calc_action)
         help_menu = menu_bar.addMenu('&Справка')
@@ -485,9 +506,9 @@ class UiMainWindow(QMainWindow):
         """
         self.thread = QThread()
         self.k2_functional.model = self.choice_of_the_model.currentText()[3:]
-        self.k2_functional.connect_com_port(self.k2_functional.COM)
+        self.k2_functional.connect_com_port(self.k2_functional.port)
 
-        self.new_check = Check(self.k2_functional)
+        self.new_check = Check(self.k2_functional, self.rs_functional)
         self.new_check.moveToThread(self.thread)
         self.new_check.next_screen_text.connect(self.screen_text.setText)
         self.new_check.next_message_box.connect(self.message_box)
@@ -610,12 +631,36 @@ class UiMainWindow(QMainWindow):
         """
         if device == 'К2-82':
             functional = self.k2_functional
-            global com
-            com = com_port
+
+            if com_port == 'COM1':
+                self.k2_com1_action.setChecked(1)
+                self.k2_com2_action.setChecked(0)
+                self.k2_com3_action.setChecked(0)
+            elif com_port == 'COM2':
+                self.k2_com1_action.setChecked(0)
+                self.k2_com2_action.setChecked(1)
+                self.k2_com3_action.setChecked(0)
+            elif com_port == 'COM3':
+                self.k2_com1_action.setChecked(0)
+                self.k2_com2_action.setChecked(0)
+                self.k2_com3_action.setChecked(1)
         else:
             functional = self.rs_functional
-            global com_rs
-            com_rs = com_port
+
+            if com_port == 'COM1':
+                self.rs_com1_action.setChecked(1)
+                self.rs_com2_action.setChecked(0)
+                self.rs_com3_action.setChecked(0)
+            elif com_port == 'COM2':
+                self.rs_com1_action.setChecked(0)
+                self.rs_com2_action.setChecked(1)
+                self.rs_com3_action.setChecked(0)
+            elif com_port == 'COM3':
+                self.rs_com1_action.setChecked(0)
+                self.rs_com2_action.setChecked(0)
+                self.rs_com3_action.setChecked(1)
+
+        functional.port = com_port
         is_connect = functional.connect_com_port(com_port)
         if is_connect:
             text = 'Соединение с {} установлено'.format(com_port)
@@ -623,7 +668,8 @@ class UiMainWindow(QMainWindow):
         else:
             text = 'Не удается соедениться с {}'.format(com_port)
         self.screen_text.setText(text)
-        self.statusBar().showMessage('COM порт К2-82: {}    |   COM порт радиостанции: {}'.format(com, com_rs))
+        self.statusBar().showMessage('COM порт К2-82: {}    |   COM порт радиостанции: {}'.format(
+            self.k2_functional.port, self.rs_functional.port))
 
 
     def save_file(self):
@@ -672,3 +718,45 @@ class UiMainWindow(QMainWindow):
                                                         2020 г.
     '''.format(VERSION)
     )
+
+
+    def save_settings(self):
+        """ Сохранение настроек в файл конфигураций config.ini
+        """
+        settings = QSettings(CONFIG_FILE_NAME, QSettings.IniFormat)
+
+        settings.setValue('k2_com1_action', int(self.k2_com1_action.isChecked()))
+        settings.setValue('k2_com2_action', int(self.k2_com2_action.isChecked()))
+        settings.setValue('k2_com3_action', int(self.k2_com3_action.isChecked()))
+        settings.setValue('rs_com1_action', int(self.rs_com1_action.isChecked()))
+        settings.setValue('rs_com2_action', int(self.rs_com2_action.isChecked()))
+        settings.setValue('rs_com3_action', int(self.rs_com3_action.isChecked()))
+
+        settings.setValue('com_k2', self.k2_functional.port)
+        settings.setValue('com_rs', self.rs_functional.port)
+
+
+    def load_settings(self):
+        """ Загрузка настроек из файла конфигураций config.ini
+        """
+        settings = QSettings(CONFIG_FILE_NAME, QSettings.IniFormat)
+
+        self.k2_com1_action.setChecked(settings.value('k2_com1_action', False, type=bool))
+        self.k2_com2_action.setChecked(settings.value('k2_com2_action', False, type=bool))
+        self.k2_com3_action.setChecked(settings.value('k2_com3_action', False, type=bool))
+        self.rs_com1_action.setChecked(settings.value('rs_com1_action', False, type=bool))
+        self.rs_com2_action.setChecked(settings.value('rs_com2_action', False, type=bool))
+        self.rs_com3_action.setChecked(settings.value('rs_com3_action', False, type=bool))
+
+        self.k2_functional.set_com_value(settings.value('com_k2', '', type=str))
+        self.rs_functional.set_com_value(settings.value('com_rs', '', type=str))
+
+
+    def closeEvent(self, event = None):
+        """ Функция закрытия приложения (при закрытии сохраняются настройки)
+        """
+        self.save_settings()
+        if event:
+            super().closeEvent(event)
+        else:
+            qApp.quit()

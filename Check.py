@@ -3,7 +3,7 @@ import random, time
 from functional import RSFunctional
 from logging_settings import event_log
 from PyQt5.QtCore import *
-from settings import com_rs, CODES, CHECK_TX_CODES, CHECK_RX_CODES
+from settings import CODES, CHECK_TX_CODES, CHECK_RX_CODES
 
 
 
@@ -41,7 +41,7 @@ class Check(QObject):
     next_message_box = pyqtSignal(list)
     check_status = pyqtSignal(dict)
 
-    def __init__(self, k2_functional):
+    def __init__(self, k2_functional, rs_functional):
         """ :param k2_functional - объект класса K2functional
             реализующий взаимодействие с приставкой К2-82
         """
@@ -69,6 +69,7 @@ class Check(QObject):
 
         self.data = set()
         self.k2_functional = k2_functional
+        self.rs_functional = rs_functional
         self.param_list = []
 
 
@@ -508,7 +509,7 @@ class Check(QObject):
         if self.k2_functional.model == 'Motorola':
             rs = RSFunctional()
             try:
-                rs.connect_com_port(com_rs)
+                rs.connect_com_port(self.rs)
                 return rs.get_serial()
             except Exception as ex: event_log.error(ex)
 

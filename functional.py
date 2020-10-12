@@ -60,6 +60,14 @@ class RSFunctional:
             return False
 
 
+    def set_com_value(self, port):
+        """
+
+        :param port:
+        """
+        self.port = port
+
+
     def get_serial(self):
         """ Получение серийного номера с радиостанции
         """
@@ -83,7 +91,6 @@ class K2Functional(RSFunctional):
         * Установка частоты на К2-82
         * Отправка числовых значений на К2-82
     """
-    COM = 'COM2'
     model = 'Motorola'
 
     def __init__(self):
