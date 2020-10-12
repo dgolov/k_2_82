@@ -220,8 +220,8 @@ class Check(QObject):
 
             # Чувствительность модуляционного входа
             elif step == 5:
-                for char in str(self.chm_u['value']):
-                    self.k2_functional.numbers_entry(char=char)
+                value_to_be_entered = str(self.chm_u['value'])
+                self.k2_functional.numbers_entry(*value_to_be_entered)
                 time.sleep(0.2)
                 # for _ in range(2):
                 self.k2_functional.send_code(CODES['mV/kHz'])
@@ -237,8 +237,8 @@ class Check(QObject):
                         difference = round(difference)
                         to_add = difference / 10
                         self.chm_u['value'] = round(self.chm_u['value'] + to_add, 1)
-                        for char in str(self.chm_u['value']):
-                            self.k2_functional.numbers_entry(char=char)
+                        value_to_be_entered = str(self.chm_u['value'])
+                        self.k2_functional.numbers_entry(*value_to_be_entered)
                         time.sleep(0.2)
                         self.k2_functional.send_code(CODES['mV/kHz'])
                         time.sleep(6)
@@ -256,8 +256,8 @@ class Check(QObject):
 
             # Установка частоты
             elif step == 15:
-                for char in str(self.f):
-                    self.k2_functional.numbers_entry(char=char)
+                value_to_be_entered = str(self.f)
+                self.k2_functional.numbers_entry(*value_to_be_entered)
 
             # УСТ в конце проверки
             elif step == 29:
@@ -287,6 +287,14 @@ class Check(QObject):
         self.k2_functional.check = False
         self.k2_functional.send_code(CODES['УСТ'])
         self.k2_functional.com.close()
+
+
+    def extend_data_list(self, data_list):
+        """ Добавление новых параметров в список входных данных с прибора
+        :param data_list: - список данных
+        """
+        for line in self.data:
+            data_list.append(line.decode('cp866'))
 
 
     def check_receiver(self):
@@ -342,8 +350,7 @@ class Check(QObject):
             self.data = set()
             self.data.add(self.k2_functional.com.readline())
             data_list = []
-            for line in self.data:
-                data_list.append(line.decode('cp866'))
+            self.extend_data_list(data_list)
             for line in data_list:
                 flag, noise_reduction = self.noise_reduction_decrypt(flag, line, noise_reduction)
 
@@ -352,8 +359,8 @@ class Check(QObject):
             self.k2_functional.send_code(CODES['ОТКЛ'])
         time.sleep(0.2)
         self.k2_functional.send_code(CODES['ВНИЗ'])
-        for code in ['0', '.', '5']:
-            self.k2_functional.numbers_entry(code)
+        value_to_be_entered = '0.5'
+        self.k2_functional.numbers_entry(*value_to_be_entered)
         self.k2_functional.send_code(CODES['mV/kHz'])
 
 
@@ -363,8 +370,7 @@ class Check(QObject):
         :param func - функция расшифровки
         """
         data_list = []
-        for line in self.data:
-            data_list.append(line.decode('cp866'))
+        self.extend_data_list(data_list)
         data_list.sort()
         func(data_list)
 
@@ -488,18 +494,19 @@ class Check(QObject):
                 flag = False
         if 'U= ' in line:
             u = float(line[3:-5])
-            if float(u) > 10 or float(u) == 2.0: flag = False
-            elif ' мВ' in line: flag = False
+            if float(u) > 10 or float(u) == 2.0:
+                flag = False
+            elif ' мВ' in line:
+                flag = False
+            elif noise_reduction == 10:
+                self.noise_reduction['is_correct'] = False
+                flag = False
             else:
                 noise_reduction -= 1
-                entry_list = ['0', '.', str(noise_reduction // 10), str(noise_reduction % 10)]
-                for char in entry_list:
-                    self.k2_functional.numbers_entry(char)
+                list_to_be_entered = ['0', '.', str(noise_reduction // 10), str(noise_reduction % 10)]
+                self.k2_functional.numbers_entry(*list_to_be_entered)
                 self.k2_functional.send_code(CODES['uV/Hz'])
                 time.sleep(1)
-                if noise_reduction == 10:
-                    self.noise_reduction['is_correct'] = False
-                    flag = False
         return flag, noise_reduction
 
 
@@ -511,7 +518,8 @@ class Check(QObject):
             try:
                 rs.connect_com_port(self.rs)
                 return rs.get_serial()
-            except Exception as ex: event_log.error(ex)
+            except Exception as ex:
+                event_log.error(ex)
 
 
     def default_tx_values(self):

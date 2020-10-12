@@ -3,6 +3,7 @@ import re, serial, time, xlwt
 from settings import CODES
 
 
+
 class ImportToExcel:
     """ Класс для выгрузки результатов проверки радиостанции в Excel документ для дальнейшего копирования в ведомость
         * Создание Excel файла и запись в него результатов
@@ -36,14 +37,12 @@ class ImportToExcel:
 
 
 
-class RSFunctional:
-    """ Функционал подключеия к радиостанции
-        Получение серийного номера
+class Functional:
+    """ Общий класс функционала для устройств подключенных к COM портам
     """
     def __init__(self):
         self.port = None
         self.com = None
-        self._sn_pattern = r'672[a-zA-Z0-9]{7}'
 
 
     def connect_com_port(self, port):
@@ -61,11 +60,19 @@ class RSFunctional:
 
 
     def set_com_value(self, port):
-        """
-
-        :param port:
+        """ :param port:
         """
         self.port = port
+
+
+
+class RSFunctional(Functional):
+    """ Функционал подключеия к радиостанции
+        Получение серийного номера
+    """
+    def __init__(self):
+        super(RSFunctional, self).__init__()
+        self._sn_pattern = r'672[a-zA-Z0-9]{7}'
 
 
     def get_serial(self):
@@ -84,7 +91,7 @@ class RSFunctional:
 
 
 
-class K2Functional(RSFunctional):
+class K2Functional(Functional):
     """ Класс основного функционала приставки К2-82
         * Соединение с ком портом (Унаследовано из класса RSFunctional)
         * Отправка команды на К2-82
@@ -95,14 +102,14 @@ class K2Functional(RSFunctional):
 
     def __init__(self):
         super(K2Functional, self).__init__()
-        self.check_deviation_time = 33
-        self.check_tx = True            # Проверять передатчик
-        self.check_rx = True            # Проверять приёмник
-        self.cancel = False
-        self.check = False
-        self.excel_book = ImportToExcel()
-        self.continue_thread = True     # Продолжать выполнение потока. Останавливается при всплывающих сообщениях
-        self.random_values = False      # Рандомные значения
+        self.check_deviation_time = 33      # Время проверки максимальной девиации
+        self.check_tx = True                # Проверять передатчик
+        self.check_rx = True                # Проверять приёмник
+        self.cancel = False                 # Отмена проверки
+        self.check = False                  # Флаг говорящий о том что проверка идет в данный момент
+        self.excel_book = ImportToExcel()   # Объект книги Exel для сохранения ведомостей
+        self.continue_thread = True         # Продолжать выполнение потока. Останавливается при всплывающих сообщениях
+        self.random_values = False          # Рандомные значения
 
 
     def send_code(self, code, command=None):
@@ -126,37 +133,34 @@ class K2Functional(RSFunctional):
         """
         error_message = 'Введите корректную частоту (например 151.825 или 151825)'
         for char in f:
-            if char.isalpha(): return error_message
+            if char.isalpha():
+                return error_message
+
+        if ',' in f:
+            f = f.replace(',', '.')
+        elif '.' not in f:
+            f = f[:3] + '.' + f[3:]
+
         if self.connect_com_port(self.com.port):
-            if len(f) == 3:
-                f += '.000'
-            elif len(f) == 5:
-                f += '00'
-            elif len(f) == 6:
-                if f[3] == '.':
-                    f += '0'
-                else:
-                    f = f[:3] + '.' + f[3:]
+            f += '0' * (7 - len(f))
             if len(f) == 7:
-                for char in f:
-                    self.numbers_entry(char=char)
+                self.numbers_entry(*f)
             else:
                 return error_message
         else:
             return 'Не удается соедениться с ' + self.com.port
 
-
         self.send_code(CODES['V/MHz'])
-
         return 'Частота {} установлена на приборе'.format(f)
 
 
-    def numbers_entry(self, char):
-        """ Отправка числовых значений (цифровая клавиатура на К2-82)
-            :param char - число которое вводим на К2-82
+    def numbers_entry(self, *args):
+        """ Отправка списка числовых значений на прибор (цифровая клавиатура на К2-82)
+            :param args - произвольное колличество чисел которые вводим на К2-82
         """
-        if char.isnumeric():
-            self.send_code(CODES[char])
-        elif char == '.' or char == ',':
-            self.send_code(CODES['.'])
-        time.sleep(0.1)
+        for char in args:
+            if char.isnumeric():
+                self.send_code(CODES[char])
+            elif char == '.' or char == ',':
+                self.send_code(CODES['.'])
+            time.sleep(0.1)
