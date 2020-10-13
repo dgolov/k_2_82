@@ -32,6 +32,19 @@ class StartError(Exception):
 
 
 
+def next_argument(func):
+    """ Функция - декоратор для выхода из менюшек измерения параметров на К2-82
+        :param func: - функция измерения конкретного параметра
+    """
+    def exit_from_current_argument(self, *args, **kwargs):
+        func(self, *args, **kwargs)
+        self.k2_functional.send_code(CODES['ОТКЛ'])
+        self.data.add(self.k2_functional.com.readline())
+        self.pause(0.2)
+    return exit_from_current_argument
+
+
+
 class Check(QObject):
     """ Класс реализующий алгоритм проверки радиостанции
         Осуществляется в отдельном потоке
@@ -66,6 +79,8 @@ class Check(QObject):
         self.i_rc = {'value': '-', 'is_correct': True}
         self.discharge_alarm = {'value': random.randint(59, 61) / 10, 'is_correct': True}
         self.charge = self.manipulator = {'value': '-', 'is_correct': True}
+
+        self.percents = 0
 
         self.data = set()
         self.k2_functional = k2_functional
@@ -173,107 +188,172 @@ class Check(QObject):
             self.i['value'] = 70
             self.i_rc['value'] = random.randint(18, 23) * 10
 
-        functions = CHECK_TX_CODES
-        timeout_02_functions = [1, 3, 4, 6, 9, 10, 12, 13, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
-        percents = 0
         self.k2_functional.send_code(CODES['УСТ'])
-        for step, function in enumerate(functions):
-            if self.k2_functional.cancel:
-                self.k2_functional.send_code(CODES['ОТКЛ'])
-                self.k2_functional.check = False
-                self.k2_functional.cancel = False
-                raise CancelError
+        self.get_percents()
 
-            self.next_screen_text.emit('Проверяю передатчик. Завершено {}%'.format(round(percents, 1)))
+        self.access_check()
+        self.power_check()
+        self.k2_functional.send_code(CODES['НЧ ДОП2'])
+        self.data.add(self.k2_functional.com.readline())
+        time.sleep(0.2)
+        self.get_percents()
 
-            # Проверка доступа к радиостанции
-            if step == 1:
-                self.data.add(self.k2_functional.com.readline())
-                self.take_result(self.description_tr)
-                if self.f < 136.0:
-                    self.reset_k2()
-                    raise NoRSError
-                elif self.f == 136.0:
-                    self.reset_k2()
-                    raise StartError
+        self.modulation_input_sensitivity_check()
+        self.harmonic_distortion_check()
+        if self.k2_functional.check_deviation:
+            self.max_deviation_check()
+        else:
+            self.chm_max['value'] = random.randint(410, 495) / 100
+            self.percents += (100 / 30) * 2
+            self.get_percents()
+        self.frequency_deviation_check()
+        for _ in range(3):
+            self.k2_functional.send_code(CODES['ОТКЛ'])
+            time.sleep(0.2)
+            self.get_percents()
 
-            # Повторяющиеся действия 3 раза, например стрелки
-            if step in [7, 14, 17]:
-                for _ in range(2):
-                    self.k2_functional.send_code(function)
-                    time.sleep(0.2)
+        for code in CHECK_TX_CODES:
+            self.k2_functional.send_code(code)
+            self.data.add(self.k2_functional.com.readline())
+            time.sleep(0.2)
+        self.get_percents()
 
-            self.k2_functional.send_code(function)
-
-            # Частота, мощность, отклонение
-            if step in [0, 2, 16]:
-                time.sleep(5)
-
-            if step == 2:
-                self.next_message_box.emit([
-                    'Проверка передатчика',
-                    'Снимите с передачи и переключите уровень мощности'
-                ])
-                time.sleep(0.5)
-                while not self.k2_functional.continue_thread: pass
-                time.sleep(3)
-
-            # Чувствительность модуляционного входа
-            elif step == 5:
-                value_to_be_entered = str(self.chm_u['value'])
-                self.k2_functional.numbers_entry(*value_to_be_entered)
-                time.sleep(0.2)
-                # for _ in range(2):
-                self.k2_functional.send_code(CODES['mV/kHz'])
-                time.sleep(4)
-                while self.chm < 2.95 or self.chm > 3.05:
-                    for _ in range(10):
-                        self.data.add(self.k2_functional.com.readline())
-                    self.take_result(self.description_tr)
-                    if not self.param_list: continue
-                    self.chm = min(self.param_list)
-                    if self.chm < 2.95 or self.chm > 3.05:
-                        difference = (3.0 - self.chm) / 0.025
-                        difference = round(difference)
-                        to_add = difference / 10
-                        self.chm_u['value'] = round(self.chm_u['value'] + to_add, 1)
-                        value_to_be_entered = str(self.chm_u['value'])
-                        self.k2_functional.numbers_entry(*value_to_be_entered)
-                        time.sleep(0.2)
-                        self.k2_functional.send_code(CODES['mV/kHz'])
-                        time.sleep(6)
-                if self.chm_u['value'] >= 20 or self.chm_u['value'] == 1:
-                    self.chm_u['is_correct'] = False
-
-            # КНИ
-            elif step == 8:
-                time.sleep(10)
-
-            # Максимальная девиация
-            elif step == 11:
-                self.take_result(self.description_tr)
-                time.sleep(self.k2_functional.check_deviation_time)
-
-            # Установка частоты
-            elif step == 15:
-                value_to_be_entered = str(self.f)
-                self.k2_functional.numbers_entry(*value_to_be_entered)
-
-            # УСТ в конце проверки
-            elif step == 29:
-                time.sleep(0.2)
-                self.k2_functional.send_code(function)
-
-            # Основные шаги между режимами
-            elif step in timeout_02_functions:
-                self.data.add(self.k2_functional.com.readline())
-                time.sleep(0.2)
-
-            percents += 100 / len(functions)
-
+        self.k2_functional.send_code(CODES['УСТ'])
+        self.get_percents()
         self.data.add(self.k2_functional.com.readline())
         self.take_result(self.description_tr)
         self.k2_functional.input_frequency(str(self.f))
+
+
+    def get_percents(self):
+        """ Получение прогрусса проверки в процентах
+            И проверка на нажатие кнопки отмены
+        """
+        self.percents += 100 / 30
+        self.next_screen_text.emit('Проверяю передатчик. Завершено {}%'.format(round(self.percents, 1)))
+
+        if self.k2_functional.cancel:
+            self.k2_functional.send_code(CODES['ОТКЛ'])
+            time.sleep(0.2)
+            self.k2_functional.send_code(CODES['УСТ'])
+            self.k2_functional.check = False
+            self.k2_functional.cancel = False
+            raise CancelError
+
+
+    def pause(self, seconds):
+        """ Пауза проверки для корректной загрузки параметров на приборе и их считывания
+            Обращение к функции получения прогресса проверки в процентах и проверки на отмену
+            :param seconds - время паузы в секундах
+        """
+        time.sleep(seconds)
+        self.get_percents()
+
+
+    @next_argument
+    def access_check(self):
+        """ Пороверка доступа к радиостанции и измерение частоты
+        """
+        self.k2_functional.send_code(CODES['ВЧ ЧАСТ'])
+        self.pause(5)
+        self.data.add(self.k2_functional.com.readline())
+        self.take_result(self.description_tr)
+        if self.f < 136.0:
+            self.reset_k2()
+            raise NoRSError
+        elif self.f == 136.0:
+            self.reset_k2()
+            raise StartError
+
+
+    @next_argument
+    def power_check(self):
+        """ Измерение выходной мощности передатчика в двух диапазонах (высокая и низкая)
+        """
+        self.k2_functional.send_code(CODES['МОЩН'])
+        self.pause(5)
+        self.next_message_box.emit([
+            'Проверка передатчика',
+            'Снимите с передачи и переключите уровень мощности'
+        ])
+        time.sleep(0.5)
+        while not self.k2_functional.continue_thread: pass
+        self.pause(3)
+
+
+    @next_argument
+    def modulation_input_sensitivity_check(self):
+        """ Измерение чувствительности модуляционного входа
+        """
+        self.k2_functional.send_code(CODES['ВВОД'])
+        value_to_be_entered = str(self.chm_u['value'])
+        self.k2_functional.numbers_entry(*value_to_be_entered)
+        self.pause(0.2)
+        self.k2_functional.send_code(CODES['mV/kHz'])
+        time.sleep(4)
+        while self.chm < 2.95 or self.chm > 3.05:
+            for _ in range(10):
+                self.data.add(self.k2_functional.com.readline())
+            self.take_result(self.description_tr)
+            if not self.param_list: continue
+            self.chm = min(self.param_list)
+            if self.chm < 2.95 or self.chm > 3.05:
+                difference = (3.0 - self.chm) / 0.025
+                difference = round(difference)
+                to_add = difference / 10
+                self.chm_u['value'] = round(self.chm_u['value'] + to_add, 1)
+                value_to_be_entered = str(self.chm_u['value'])
+                self.k2_functional.numbers_entry(*value_to_be_entered)
+                time.sleep(0.2)
+                self.k2_functional.send_code(CODES['mV/kHz'])
+                time.sleep(6)
+        if self.chm_u['value'] >= 20 or self.chm_u['value'] == 1:
+            self.chm_u['is_correct'] = False
+        self.get_percents()
+
+
+    @next_argument
+    def harmonic_distortion_check(self):
+        """ Измерение коэфициента гармоник передатчика
+        """
+        for _ in range(3):
+            self.k2_functional.send_code(CODES['ВНИЗ'])
+            time.sleep(0.2)
+        self.get_percents()
+        self.k2_functional.send_code(CODES['ВВОД'])
+        self.pause(10)
+
+
+    @next_argument
+    def max_deviation_check(self):
+        """ Измерение максимальной девиации
+        """
+        self.k2_functional.send_code(CODES['ВНИЗ'])
+        self.pause(0.1)
+        self.k2_functional.send_code(CODES['ВВОД'])
+        self.take_result(self.description_tr)
+        self.pause(33)
+
+
+    @next_argument
+    def frequency_deviation_check(self):
+        """ Измерение отклонение частоты от номинала
+        """
+        self.k2_functional.send_code(CODES['ВВЕРХ'])
+        self.pause(0.1)
+        for _ in range(3):
+            self.k2_functional.send_code(CODES['ВНИЗ'])
+            self.pause(0.2)
+        self.k2_functional.send_code(CODES['ВВОД'])
+        value_to_be_entered = str(self.f)
+        self.get_percents()
+        self.k2_functional.numbers_entry(*value_to_be_entered)
+        self.get_percents()
+        self.k2_functional.send_code(CODES['ВВОД'])
+        self.pause(5)
+        self.k2_functional.send_code(CODES['ОТКЛ'])
+        self.data.add(self.k2_functional.com.readline())
+        self.pause(0.2)
 
 
     def reset_k2(self):
@@ -309,9 +389,8 @@ class Check(QObject):
         else:
             self.selectivity_rc['value'] = random.randint(20, 24) / 100
 
-        functions = CHECK_RX_CODES
 
-        for step, function in enumerate(functions):
+        for step, function in enumerate(CHECK_RX_CODES):
             if self.k2_functional.cancel:
                 self.k2_functional.check = False
                 self.k2_functional.cancel = False
@@ -388,9 +467,8 @@ class Check(QObject):
                 if self.kg['value'] >= 3.0 or self.kg['value'] == 0: self.kg['is_correct'] = False
             elif 'P= ' in line:
                 self.decrypt_power(line)
-            elif 'ЧМ+= ' in line:
-                if float(line[5:-6]) != self.chm_u['value']:
-                    self.param_list.append(float(line[5:-6]))
+            elif 'ЧМ+= ' in line and float(line[5:-6]) != self.chm_u['value']:
+                self.param_list.append(float(line[5:-6]))
             elif 'ЧМмах= ' in line:
                 self.chm_max['value'] = float(line[7:-6])
                 if self.chm_max['value'] >= 5 or self.chm_max == 0: self.chm_max[1] = False

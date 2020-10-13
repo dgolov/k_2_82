@@ -490,7 +490,7 @@ class UiMainWindow(QMainWindow):
             :param code - код, который будет отправлен на COM порт
         """
         if not self.k2_functional.check:
-            self.k2_functional.connect_com_port(self.k2_functional.COM)
+            self.k2_functional.connect_com_port(self.k2_functional.port)
         result = self.k2_functional.send_code(command=text, code=code)
         self.screen_text.setText(result)
         if not self.k2_functional.check:
@@ -610,9 +610,9 @@ class UiMainWindow(QMainWindow):
             :param state - статус флажка пропуска максимальной девиации
         """
         if state == Qt.Checked:
-            self.k2_functional.check_deviation_time = 0.2
+            self.k2_functional.check_deviation = False
         else:
-            self.k2_functional.check_deviation_time = 33
+            self.k2_functional.check_deviation = True
 
 
     def rx_flag_click(self, state):

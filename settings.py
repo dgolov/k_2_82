@@ -4,7 +4,7 @@
 CONFIG_FILE_NAME = 'config.ini'
 
 # Версия программы
-VERSION = '0.5.1'
+VERSION = '0.5.2'
 
 # Коды К2-82
 CODES = {
@@ -47,11 +47,8 @@ CODES = {
 
 # Коды проверки передатчика
 CHECK_TX_CODES = [
-    CODES['ВЧ ЧАСТ'], CODES['ОТКЛ'], CODES['МОЩН'], CODES['ОТКЛ'], CODES['НЧ ДОП2'], CODES['ВВОД'], CODES['ОТКЛ'],
-    CODES['ВНИЗ'], CODES['ВВОД'], CODES['ОТКЛ'], CODES['ВНИЗ'], CODES['ВВОД'], CODES['ОТКЛ'], CODES['ВВЕРХ'],
-    CODES['ВНИЗ'], CODES['ВВОД'], CODES['ВВОД'], CODES['ОТКЛ'], CODES['ВНИЗ'], CODES['0'], CODES['.'], CODES['5'],
-    CODES['mV/kHz'], CODES['ВЧ ЧМ'], CODES['3'], CODES['mV/kHz'], CODES['ВНИЗ'], CODES['1'], CODES['mV/kHz'],
-    CODES['УСТ']
+    CODES['ВНИЗ'], CODES['0'], CODES['.'], CODES['5'], CODES['mV/kHz'], CODES['ВЧ ЧМ'], CODES['3'], CODES['mV/kHz'],
+    CODES['ВНИЗ'], CODES['1'], CODES['mV/kHz'], CODES['УСТ']
 ]
 
 # Коды проверки приемника

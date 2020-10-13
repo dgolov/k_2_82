@@ -102,7 +102,7 @@ class K2Functional(Functional):
 
     def __init__(self):
         super(K2Functional, self).__init__()
-        self.check_deviation_time = 33      # Время проверки максимальной девиации
+        self.check_deviation = True         # Проверка максимальной девиации
         self.check_tx = True                # Проверять передатчик
         self.check_rx = True                # Проверять приёмник
         self.cancel = False                 # Отмена проверки
