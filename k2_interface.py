@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import QMainWindow, QPushButton, QAction, qApp, QMessageBox
 from PyQt5.QtGui import QIcon
 from functional import K2Functional, RSFunctional
 from check import Check
-from logging_settings import event_log
 from utils import DecibelCalc
 from settings import *
 
@@ -450,6 +449,8 @@ class UiMainWindow(QMainWindow):
         help_action = QAction('&О программе', self)
         help_action.setShortcut('Ctrl+F1')
         help_action.triggered.connect(self.show_info)
+        user_manual_action = QAction('&Руководство пользователя', self)
+        user_manual_action.triggered.connect(open_user_manual)
         self.k2_com1_action.setCheckable(True)
         self.k2_com1_action.triggered.connect(lambda: self.choice_com_port(com_port='COM1', device='К2-82'))
         self.k2_com2_action.setCheckable(True)
@@ -481,6 +482,7 @@ class UiMainWindow(QMainWindow):
         utils_menu.addAction(decibel_calc_action)
         help_menu = menu_bar.addMenu('&Справка')
         help_menu.addAction(help_action)
+        help_menu.addAction(user_manual_action)
 
 
     def click_button(self, text, code):
@@ -496,8 +498,7 @@ class UiMainWindow(QMainWindow):
         if not self.k2_functional.check:
             try:
                 self.k2_functional.com.close()
-            except AttributeError:
-                pass
+            except AttributeError: pass
 
 
     def check_rs_button_click(self):
@@ -526,31 +527,38 @@ class UiMainWindow(QMainWindow):
         """
         self.screen_text.setText(check_result['message'])
 
-        if check_result['params'] is not None:
-            col = 0
-            for param in check_result['params']:
-                step = 2 if col == 16 else 1
+        if check_result['params'] is None:
+            self.thread.terminate()
+            self.thread = None
+            return
 
-                if col == 16 or col == 19 or col == 20:
-                    try:
-                        item = self.result_table.item(self.row, col).text()
-                        if item != '':
-                            col += step
-                            continue
-                    except Exception: pass
+        col = 0
+        for param in check_result['params']:
+            if col == 0:
+                step = 3
+            elif col == 16:
+                step = 2
+            else:
+                step = 1
 
-                cell_info = QtWidgets.QTableWidgetItem(str(param['value']).replace('.', ','))
-                if not param['is_correct']:
-                    cell_info.setForeground(QtGui.QColor(250, 0, 0))
-                self.result_table.setItem(self.row, col, cell_info)
+            try:
+                item = self.result_table.item(self.row, col).text()
+                if item != '':
+                    col += step
+                    continue
+            except Exception: pass
+
+            cell_info = QtWidgets.QTableWidgetItem(str(param['value']).replace('.', ','))
+            if not param['is_correct']:
+                cell_info.setForeground(QtGui.QColor(250, 0, 0))
+            self.result_table.setItem(self.row, col, cell_info)
+            col += 1
+            if col == 1:
+                col += 2
+            if col == 17:
                 col += 1
-                if col == 1:
-                    col += 2
-                if col == 17:
-                    col += 1
 
-            self.row += 1
-
+        self.row += 1
         self.thread.terminate()
         self.thread = None
 

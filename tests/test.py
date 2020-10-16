@@ -1,30 +1,56 @@
-# data_list = ['Kг= 0.31 %\n',
-#              '\n',
-#              'Kг= 0.72 %\n',
-#              '\n',
-#              'Kг= 4.73 %\n',
-#              '\n',
-#              'U= 1.87  В\n',
-#              '\n',
-#              'U= 1.92  В\n',
-#              '\n',
-#              'U= 2.01  В\n',
-#              '\n',
-#              'U= 2.11  В\n',
-#              '\n',
-#              'U= 2.17  В\n',
-# ]
-#
-# param_list = []
-#
-# for line in data_list:
-#     if 'Kг= ' in line:
-#         param_list.append(float(line[4:-3]))
-# out_pow = param_list[-2]
-#
-# for line in data_list:
-#     if 'U= ' in line:
-#         param_list.append(float(line[3:-4]))
-#
-# out_kg = param_list[-2]
-# print(out_pow, out_kg)
+import unittest
+from unittest.mock import Mock
+from check import Check
+from functional import K2Functional, RSFunctional
+
+
+class TestCheck(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super(TestCheck, self).__init__()
+        self.k2 = K2Functional()
+        self.rs = RSFunctional()
+        self.k2.send_code = Mock()
+        self.k2.com = Mock()
+        self.k2.com.close = Mock()
+
+    def runTest(self):
+        self.test_access_check_normal()
+        self.test_access_check_no_rs_connection()
+        self.test_access_check_no_k2_connection()
+
+
+    def test_access_check_normal(self):
+        check = Check(self.k2, self.rs)
+        check.pause = Mock()
+        self.k2.com.readline = Mock(return_value='f=152.6489 МГц'.encode('cp866'))
+        check.access_check()
+        self.assertEqual(check.f, 152.650)
+
+
+    def test_access_check_no_rs_connection(self):
+        check = Check(self.k2, self.rs)
+        check.pause = Mock()
+        message = ''
+        self.k2.com.readline = Mock(return_value='f=000.0010 МГц'.encode('cp866'))
+        try:
+            check.access_check()
+        except Exception as exc:
+            message = str(exc)
+        self.assertEqual(message, 'Нет связи с радиостанцией. Проверьте питание и PTT')
+
+
+    def test_access_check_no_k2_connection(self):
+        check = Check(self.k2, self.rs)
+        check.pause = Mock()
+        message = ''
+        self.k2.com.readline = Mock(return_value=''.encode('cp866'))
+        try:
+            check.access_check()
+        except Exception as exc:
+            message = str(exc)
+        self.assertEqual(message, 'Нет связи с К2-82. Проверьте подключение и активность УСТ и ДУ')
+
+
+
+if __name__ == '__main__':
+    unittest.main()

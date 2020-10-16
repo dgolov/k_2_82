@@ -1,4 +1,7 @@
 # Общие настройки и константы
+import os
+from logging_settings import event_log
+
 
 # Название файла конфигураций (для запоминания настроек COM портов)
 CONFIG_FILE_NAME = 'config.ini'
@@ -55,7 +58,7 @@ CHECK_TX_CODES = [
 CHECK_RX_CODES = [
     CODES['УСТ'], CODES['НЧ ДОП2'], CODES['ВНИЗ'], CODES['ВВОД'], CODES['mV/kHz'], CODES['ВВОД'], CODES['0'],
     CODES['.'], CODES['2'], CODES['5'], CODES['uV/Hz']
-]#, CODES['ОТКЛ'], CODES['ВНИЗ']]
+]
 
 
 # Названия колонок в таблице
@@ -63,3 +66,14 @@ COLL_NAMES = [
     "№ РC", "№ АКБ", "Ёмкость", "P", "Выс. P", "Откл.", "КНИ", "ЧМ", "Max дев.", "Чувств.", "Вых. P",
     "Вых P.", "Избер.", "КНИ", "Шумодав", "Деж реж.", "I пр.", "I прд.", "Раздяд\nАКБ", 'ЗУ', 'Тангента'
 ]
+
+#Руководство пользователя
+USER_MANUAL_PATH = os.path.normcase('files/user manual.docx')
+
+def open_user_manual():
+    """ Открыть руководство пользователя
+    """
+    try:
+        os.startfile(USER_MANUAL_PATH)
+    except Exception as exc:
+        event_log.error(exc)

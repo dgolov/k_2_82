@@ -12,7 +12,9 @@ class NoRSError(Exception):
     """
     def __init__(self):
         super(NoRSError, self).__init__()
-        self.error_message = "Нет связи с радиостанцией. Проверьте питание и PTT"
+
+    def __str__(self):
+        return "Нет связи с радиостанцией. Проверьте питание и PTT"
 
 
 class CancelError(Exception):
@@ -20,7 +22,9 @@ class CancelError(Exception):
     """
     def __init__(self):
         super(CancelError, self).__init__()
-        self.error_message = "Проверка отменена"
+
+    def __str__(self):
+        return "Проверка отменена"
 
 
 class StartError(Exception):
@@ -28,8 +32,9 @@ class StartError(Exception):
     """
     def __init__(self):
         super(StartError, self).__init__()
-        self.error_message = "Нет связи с К2-82. Проверьте подключение и активность УСТ и ДУ"
 
+    def __str__(self):
+        return "Нет связи с К2-82. Проверьте подключение и активность УСТ и ДУ"
 
 
 def next_argument(func):
@@ -81,11 +86,77 @@ class Check(QObject):
         self.charge = self.manipulator = {'value': '-', 'is_correct': True}
 
         self.percents = 0
+        self.mode = None
 
         self.data = set()
         self.k2_functional = k2_functional
         self.rs_functional = rs_functional
         self.param_list = []
+
+
+    def get_error_message(self, log_msg, msg):
+        """ Выводит сообщение о ошибки на информационный дисплей и в файл логов
+            :param log_msg: - сообщение для файла логов
+            :param msg: - сообщение для информационного дисплея
+        """
+        event_log.error(log_msg)
+        self.k2_functional.check = False
+        self.check_status.emit({
+            "message": msg,
+            "params": None
+        })
+
+
+    def get_check_status(self):
+        """ Получение прогрусса проверки в процентах
+            И проверка на нажатие кнопки отмены
+        """
+        if self.mode == 'tx':
+            self.percents += 100 / 30
+            self.next_screen_text.emit('Проверяю передатчик. Завершено {}%'.format(round(self.percents, 1)))
+        self.get_cancel_status()
+
+
+    def get_cancel_status(self):
+        if self.k2_functional.cancel:
+            self.reset_k2()
+            self.k2_functional.cancel = False
+            raise CancelError
+
+
+    def pause(self, seconds):
+        """ Пауза проверки для корректной загрузки параметров на приборе и их считывания
+            Обращение к функции получения прогресса проверки в процентах и проверки на отмену
+            :param seconds - время паузы в секундах
+        """
+        if isinstance(seconds, int):
+            for _ in range(seconds):
+                self.get_cancel_status()
+                time.sleep(1)
+        # else: time.sleep(seconds)
+        self.get_check_status()
+
+
+    def reset_k2(self):
+        """ Сбрасывает настройки К2-82 при отмене или ошибке проверки
+            Методом нажатия ОТКЛ и УСТ возвращает прибор в исходное состояние
+            Закрывает COM порт
+        """
+        for _ in range(4):
+            self.k2_functional.send_code(CODES['ОТКЛ'])
+            time.sleep(0.1)
+        self.k2_functional.check = False
+        if self.mode == 'tx':
+            self.k2_functional.send_code(CODES['УСТ'])
+        self.k2_functional.com.close()
+
+
+    def extend_data_list(self, data_list):
+        """ Добавление новых параметров в список входных данных с прибора
+        :param data_list: - список данных
+        """
+        for line in self.data:
+            data_list.append(line.decode('cp866'))
 
 
     @pyqtSlot()
@@ -99,6 +170,7 @@ class Check(QObject):
             self.k2_functional.check = True
 
             if self.k2_functional.check_tx:
+                self.mode = 'tx'
                 self.next_message_box.emit(['Проверка передатчика', 'Поставьте радиостанцию в режим передачи'])
                 time.sleep(0.5)
                 while not self.k2_functional.continue_thread: pass
@@ -112,10 +184,12 @@ class Check(QObject):
                 if self.k2_functional.random_values: self.default_tx_values()
 
             if self.k2_functional.check_rx:
+                self.mode = 'rx'
                 self.check_receiver()
-                self.k2_functional.check = False
             else:
                 if self.k2_functional.random_values: self.default_rx_values()
+
+            self.k2_functional.check = False
 
             # Засекаем время окончания, получаем общее время проверки, при успешном завершении логируем
             ended_time = time.time()
@@ -139,35 +213,15 @@ class Check(QObject):
                                     ]})
 
         except AttributeError as exc:
-            event_log.error(exc)
-            self.check_status.emit({
-                "message": 'Не удается соедениться с {}'.format(self.k2_functional.port),
-                "params": None
-            })
+            self.get_error_message(log_msg=exc, msg='Не удается соедениться с {}'.format(self.k2_functional.port))
         except NoRSError as no_rs:
-            event_log.warning('RS connecting error')
-            self.check_status.emit({
-                "message": no_rs.error_message,
-                "params": None
-            })
+            self.get_error_message(log_msg='RS connecting error', msg=str(no_rs))
         except CancelError as cancel:
-            event_log.info('Cancel check')
-            self.check_status.emit({
-                "message": cancel.error_message,
-                "params": None
-            })
+            self.get_error_message(log_msg='Cancel check', msg=str(cancel))
         except StartError as algorithm_er:
-            event_log.warning('Start check error')
-            self.check_status.emit({
-                "message": algorithm_er.error_message,
-                "params": None
-            })
-        except Exception as ex:
-            event_log.error(ex)
-            self.check_status.emit({
-                "message": "Неизвестная ошибка, дайте пизды производителю",
-                "params": None
-            })
+            self.get_error_message(log_msg='Start check error', msg=str(algorithm_er))
+        except Exception as exc:
+            self.get_error_message(log_msg=exc, msg="Неизвестная ошибка, дайте пизды производителю")
 
 
     def check_transmitter(self):
@@ -189,14 +243,14 @@ class Check(QObject):
             self.i_rc['value'] = random.randint(18, 23) * 10
 
         self.k2_functional.send_code(CODES['УСТ'])
-        self.get_percents()
+        self.get_check_status()
 
         self.access_check()
         self.power_check()
         self.k2_functional.send_code(CODES['НЧ ДОП2'])
         self.data.add(self.k2_functional.com.readline())
         time.sleep(0.2)
-        self.get_percents()
+        self.get_check_status()
 
         self.modulation_input_sensitivity_check()
         self.harmonic_distortion_check()
@@ -205,49 +259,24 @@ class Check(QObject):
         else:
             self.chm_max['value'] = random.randint(410, 495) / 100
             self.percents += (100 / 30) * 2
-            self.get_percents()
+            self.get_check_status()
         self.frequency_deviation_check()
         for _ in range(3):
             self.k2_functional.send_code(CODES['ОТКЛ'])
             time.sleep(0.2)
-            self.get_percents()
+            self.get_check_status()
 
         for code in CHECK_TX_CODES:
             self.k2_functional.send_code(code)
             self.data.add(self.k2_functional.com.readline())
             time.sleep(0.2)
-        self.get_percents()
+        self.get_check_status()
 
         self.k2_functional.send_code(CODES['УСТ'])
-        self.get_percents()
+        self.get_check_status()
         self.data.add(self.k2_functional.com.readline())
         self.take_result(self.description_tr)
         self.k2_functional.input_frequency(str(self.f))
-
-
-    def get_percents(self):
-        """ Получение прогрусса проверки в процентах
-            И проверка на нажатие кнопки отмены
-        """
-        self.percents += 100 / 30
-        self.next_screen_text.emit('Проверяю передатчик. Завершено {}%'.format(round(self.percents, 1)))
-
-        if self.k2_functional.cancel:
-            self.k2_functional.send_code(CODES['ОТКЛ'])
-            time.sleep(0.2)
-            self.k2_functional.send_code(CODES['УСТ'])
-            self.k2_functional.check = False
-            self.k2_functional.cancel = False
-            raise CancelError
-
-
-    def pause(self, seconds):
-        """ Пауза проверки для корректной загрузки параметров на приборе и их считывания
-            Обращение к функции получения прогресса проверки в процентах и проверки на отмену
-            :param seconds - время паузы в секундах
-        """
-        time.sleep(seconds)
-        self.get_percents()
 
 
     @next_argument
@@ -288,9 +317,9 @@ class Check(QObject):
         self.k2_functional.send_code(CODES['ВВОД'])
         value_to_be_entered = str(self.chm_u['value'])
         self.k2_functional.numbers_entry(*value_to_be_entered)
-        self.pause(0.2)
+        time.sleep(0.2)
         self.k2_functional.send_code(CODES['mV/kHz'])
-        time.sleep(4)
+        self.pause(4)
         while self.chm < 2.95 or self.chm > 3.05:
             for _ in range(10):
                 self.data.add(self.k2_functional.com.readline())
@@ -306,10 +335,10 @@ class Check(QObject):
                 self.k2_functional.numbers_entry(*value_to_be_entered)
                 time.sleep(0.2)
                 self.k2_functional.send_code(CODES['mV/kHz'])
-                time.sleep(6)
+                self.pause(6)
         if self.chm_u['value'] >= 20 or self.chm_u['value'] == 1:
             self.chm_u['is_correct'] = False
-        self.get_percents()
+        self.get_check_status()
 
 
     @next_argument
@@ -319,7 +348,7 @@ class Check(QObject):
         for _ in range(3):
             self.k2_functional.send_code(CODES['ВНИЗ'])
             time.sleep(0.2)
-        self.get_percents()
+        self.get_check_status()
         self.k2_functional.send_code(CODES['ВВОД'])
         self.pause(10)
 
@@ -329,7 +358,7 @@ class Check(QObject):
         """ Измерение максимальной девиации
         """
         self.k2_functional.send_code(CODES['ВНИЗ'])
-        self.pause(0.1)
+        time.sleep(0.1)
         self.k2_functional.send_code(CODES['ВВОД'])
         self.take_result(self.description_tr)
         self.pause(33)
@@ -340,41 +369,20 @@ class Check(QObject):
         """ Измерение отклонение частоты от номинала
         """
         self.k2_functional.send_code(CODES['ВВЕРХ'])
-        self.pause(0.1)
+        time.sleep(0.1)
         for _ in range(3):
             self.k2_functional.send_code(CODES['ВНИЗ'])
-            self.pause(0.2)
+            time.sleep(0.2)
         self.k2_functional.send_code(CODES['ВВОД'])
         value_to_be_entered = str(self.f)
-        self.get_percents()
+        self.get_check_status()
         self.k2_functional.numbers_entry(*value_to_be_entered)
-        self.get_percents()
+        self.get_check_status()
         self.k2_functional.send_code(CODES['ВВОД'])
         self.pause(5)
         self.k2_functional.send_code(CODES['ОТКЛ'])
-        self.data.add(self.k2_functional.com.readline())
-        self.pause(0.2)
-
-
-    def reset_k2(self):
-        """ Сбрасывает настройки К2-82 при отмене или ошибке проверки
-            Методом нажатия ОТКЛ и УСТ возвращает прибор в исходное состояние
-            Закрывает COM порт
-        """
-        for _ in range(4):
-            self.k2_functional.send_code(CODES['ОТКЛ'])
-            time.sleep(0.1)
-        self.k2_functional.check = False
-        self.k2_functional.send_code(CODES['УСТ'])
-        self.k2_functional.com.close()
-
-
-    def extend_data_list(self, data_list):
-        """ Добавление новых параметров в список входных данных с прибора
-        :param data_list: - список данных
-        """
-        for line in self.data:
-            data_list.append(line.decode('cp866'))
+        self.data.add(self.k2_functional.com.read())
+        time.sleep(0.2)
 
 
     def check_receiver(self):
@@ -391,10 +399,7 @@ class Check(QObject):
 
 
         for step, function in enumerate(CHECK_RX_CODES):
-            if self.k2_functional.cancel:
-                self.k2_functional.check = False
-                self.k2_functional.cancel = False
-                raise CancelError
+            self.get_check_status()
 
             self.next_screen_text.emit('Проверяю приёмник')
 
@@ -404,13 +409,13 @@ class Check(QObject):
             self.k2_functional.send_code(function)
             time.sleep(0.2)
             if step == 4:
-                time.sleep(5)
+                self.pause(5)
                 self.next_message_box.emit(['Проверка приёмника', 'Убавьте выходную мощность регулятором громкости'])
                 time.sleep(0.5)
                 while not self.k2_functional.continue_thread:
                     pass
             if step == 5:
-                time.sleep(5)
+                self.pause(5)
 
         # Цикл считывания данных с COM порта
         for _ in range(20):
