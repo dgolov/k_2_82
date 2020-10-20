@@ -14,9 +14,7 @@ from settings import *
 
 
 class UiMainWindow(QMainWindow):
-    """ Окно пользовательского интерфейса программы
-        Новая версия переписанная на библиотеке PyQt 5 заменив Tkiner
-    """
+    """ Окно пользовательского интерфейса программы """
     def __init__(self):
         super().__init__()
         self.main_window = QtWidgets.QWidget(self)
@@ -54,8 +52,7 @@ class UiMainWindow(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-        """ Инициализация интерфейса
-        """
+        """ Инициализация интерфейса """
         self.resize(1820, 980)
 
         icon = QtGui.QIcon()
@@ -83,8 +80,7 @@ class UiMainWindow(QMainWindow):
 
 
     def init_device(self):
-        """ Инициализация приборной панели, надписей и линей на ней
-        """
+        """ Инициализация приборной панели, надписей и линей на ней """
         # Прибор и экран
         self.k2_frame.setGeometry(QtCore.QRect(30, 20, 1431, 411))
         font = QtGui.QFont()
@@ -145,8 +141,7 @@ class UiMainWindow(QMainWindow):
 
 
     def init_buttons(self):
-        """ Инициализация всех кнопок в программе
-        """
+        """ Инициализация всех кнопок в программе """
         button_width = 93
         button_height = 30
 
@@ -323,8 +318,7 @@ class UiMainWindow(QMainWindow):
 
 
     def init_table(self):
-        """ Инициализация таблицы результатов
-        """
+        """ Инициализация таблицы результатов """
         rows, cols = 20, 21
 
         self.result_table.setGeometry(QtCore.QRect(220, 460, 1563, 405))
@@ -429,16 +423,14 @@ class UiMainWindow(QMainWindow):
 
 
     def clear_table(self):
-        """ Очистка таблицы
-        """
+        """ Очистка таблицы """
         self.result_table.clear()
         self.row = 0
         self.init_table()
 
 
     def init_menu(self):
-        """ Инициализация меню
-        """
+        """ Инициализация меню """
         menu_bar = self.menuBar()
         check_action = QAction(QIcon('images\\start.png'), '&Проверка параметров', self)
         check_action.setShortcut('Ctrl+A')
@@ -575,17 +567,15 @@ class UiMainWindow(QMainWindow):
 
 
     def button_cancel_click(self):
-        """ Кнопка отмены цикла проверки
-        """
+        """ Кнопка отмены цикла проверки """
         if self.k2_functional.check:
             self.k2_functional.cancel = True
             self.thread.terminate()
 
 
     def get_frequency_button_click(self, event=None):
-        """
-        Кнопка установки частоты на К2-82
-        :param event - событие отмены, кнопка с клавиатуры
+        """ Кнопка установки частоты на К2-82
+            :param event - событие отмены, кнопка с клавиатуры
         """
         frequency = self.get_frequency.text()
         if frequency == 'iddqd':
@@ -681,8 +671,7 @@ class UiMainWindow(QMainWindow):
 
 
     def save_file(self):
-        """ Сохранение параметров в файл Excel
-        """
+        """ Сохранение параметров в файл Excel """
         pass
         # name = filedialog.asksaveasfilename(filetypes=(('Excel', '*.xls'), ('Все файлы','*.*')))
         # if name != '':
@@ -690,8 +679,7 @@ class UiMainWindow(QMainWindow):
 
 
     def show_info(self):
-        """ Меню справка - о программе
-        """
+        """ Меню справка - о программе """
         QMessageBox.information(self, 'О программе',
     '''v {}
 
@@ -729,8 +717,7 @@ class UiMainWindow(QMainWindow):
 
 
     def save_settings(self):
-        """ Сохранение настроек в файл конфигураций config.ini
-        """
+        """ Сохранение настроек в файл конфигураций config.ini """
         settings = QSettings(CONFIG_FILE_NAME, QSettings.IniFormat)
 
         settings.setValue('k2_com1_action', int(self.k2_com1_action.isChecked()))
@@ -745,8 +732,7 @@ class UiMainWindow(QMainWindow):
 
 
     def load_settings(self):
-        """ Загрузка настроек из файла конфигураций config.ini
-        """
+        """ Загрузка настроек из файла конфигураций config.ini """
         settings = QSettings(CONFIG_FILE_NAME, QSettings.IniFormat)
 
         self.k2_com1_action.setChecked(settings.value('k2_com1_action', False, type=bool))
@@ -761,8 +747,7 @@ class UiMainWindow(QMainWindow):
 
 
     def closeEvent(self, event = None):
-        """ Функция закрытия приложения (при закрытии сохраняются настройки)
-        """
+        """ Функция закрытия приложения (при закрытии сохраняются настройки) """
         self.save_settings()
         if event:
             super().closeEvent(event)

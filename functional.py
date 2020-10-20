@@ -38,8 +38,7 @@ class ImportToExcel:
 
 
 class Functional:
-    """ Общий класс функционала для устройств подключенных к COM портам
-    """
+    """ Общий класс функционала для устройств подключенных к COM портам """
     def __init__(self):
         self.port = None
         self.com = None

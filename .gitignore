@@ -2,5 +2,6 @@
 events.log
 env
 build
+files
 __pycache__
 config.ini

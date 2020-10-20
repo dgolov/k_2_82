@@ -7,7 +7,7 @@ from logging_settings import event_log
 CONFIG_FILE_NAME = 'config.ini'
 
 # Версия программы
-VERSION = '0.5.2'
+VERSION = '0.5.3'
 
 # Коды К2-82
 CODES = {
@@ -71,8 +71,6 @@ COLL_NAMES = [
 USER_MANUAL_PATH = os.path.normcase('files/user manual.docx')
 
 def open_user_manual():
-    """ Открыть руководство пользователя
-    """
     try:
         os.startfile(USER_MANUAL_PATH)
     except Exception as exc:

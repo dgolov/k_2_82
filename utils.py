@@ -32,8 +32,7 @@ class DecibelCalc:
 
 
     def tm_to_db(self):
-        """ Конвертация: Разы в Дб
-        """
+        """ Конвертация: Разы в Дб """
         data = self.get_tm.get()
         if ',' in data:
             data = data.replace(',','.')
@@ -50,8 +49,7 @@ class DecibelCalc:
 
 
     def db_to_tm(self):
-        """ Конвертация: Дб в разы
-        """
+        """ Конвертация: Дб в разы """
         data = self.get_db.get()
         if ',' in data:
             data = data.replace(',','.')
@@ -69,8 +67,7 @@ class DecibelCalc:
 
 
     def show(self):
-        """ Отображение дополнительного окна с калькулятором
-        """
+        """ Отображение дополнительного окна с калькулятором """
         x, y = 40, 20
         width, height = 150, 30
 
