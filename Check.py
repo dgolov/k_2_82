@@ -5,9 +5,9 @@ from PyQt5.QtCore import *
 from settings import CODES, CHECK_TX_CODES, CHECK_RX_CODES
 
 
-
 class NoRSError(Exception):
     """ Ошибка связи с радиостанцией """
+
     def __init__(self):
         super(NoRSError, self).__init__()
 
@@ -17,6 +17,7 @@ class NoRSError(Exception):
 
 class CancelError(Exception):
     """ Отмена проверки """
+
     def __init__(self):
         super(CancelError, self).__init__()
 
@@ -24,8 +25,16 @@ class CancelError(Exception):
         return "Проверка отменена"
 
 
+class NextError(Exception):
+    """ Пропуск шага проверки """
+
+    def __init__(self):
+        super(NextError, self).__init__()
+
+
 class StartError(Exception):
     """ Ошибка алгоритма, сбиты настройки К2-82 при запуске проверки """
+
     def __init__(self):
         super(StartError, self).__init__()
 
@@ -37,12 +46,13 @@ def next_argument(func):
     """ Функция - декоратор для выхода из менюшек измерения параметров на К2-82
         :param func: - функция измерения конкретного параметра
     """
+
     def exit_from_current_menu(self, *args, **kwargs):
         func(self, *args, **kwargs)
         self.k2_functional.send_code(CODES['ОТКЛ'])
         self.pause(0.2)
-    return exit_from_current_menu
 
+    return exit_from_current_menu
 
 
 class Check(QObject):
@@ -71,7 +81,7 @@ class Check(QObject):
         self.chm_max = {'value': '-', 'is_correct': True}
         self.selectivity_rc = {'value': '-', 'is_correct': True}
         self.out_pow = {'value': '-', 'is_correct': True}
-        self.out_pow_vt =  {'value': '-', 'is_correct': True}
+        self.out_pow_vt = {'value': '-', 'is_correct': True}
         self.selectivity = {'value': '-', 'is_correct': True}
         self.out_kg = {'value': '-', 'is_correct': True}
         self.noise_reduction = {'value': '-', 'is_correct': True}
@@ -87,7 +97,6 @@ class Check(QObject):
         self.rs_functional = rs_functional
         self.param_list = []
 
-
     def get_error_message(self, log_msg, msg):
         """ Выводит сообщение о ошибки на информационный дисплей и в файл логов
             :param log_msg: - сообщение для файла логов
@@ -100,7 +109,6 @@ class Check(QObject):
             "params": None
         })
 
-
     def get_check_status(self):
         """ Получение прогрусса проверки в процентах
             И проверка на нажатие кнопки отмены
@@ -110,14 +118,12 @@ class Check(QObject):
             self.next_screen_text.emit('Проверяю передатчик. Завершено {}%'.format(round(self.percents, 1)))
         self.get_cancel_status()
 
-
     def get_cancel_status(self):
         """ Проверка на нажатие кнопки отмена """
         if self.k2_functional.cancel:
             self.reset_k2()
             self.k2_functional.cancel = False
             raise CancelError
-
 
     def pause(self, seconds):
         """ Пауза проверки для корректной загрузки параметров на приборе и их считывания
@@ -127,10 +133,13 @@ class Check(QObject):
         if isinstance(seconds, int):
             for _ in range(seconds):
                 self.get_cancel_status()
+                if self.k2_functional.next:
+                    self.k2_functional.next = False
+                    raise NextError
                 time.sleep(1)
-        else: time.sleep(seconds)
+        else:
+            time.sleep(seconds)
         self.get_check_status()
-
 
     def reset_k2(self):
         """ Сбрасывает настройки К2-82 при отмене или ошибке проверки
@@ -145,14 +154,12 @@ class Check(QObject):
             self.k2_functional.send_code(CODES['УСТ'])
         self.k2_functional.com.close()
 
-
     def extend_data_list(self, data_list):
         """ Добавление новых параметров в список входных данных с прибора
             :param data_list: - список данных
         """
         for line in self.data:
             data_list.append(line.decode('cp866'))
-
 
     @pyqtSlot()
     def run(self, *args, **kwargs):
@@ -166,19 +173,25 @@ class Check(QObject):
                 self.mode = 'tx'
                 self.next_message_box.emit(['Проверка передатчика', 'Поставьте радиостанцию в режим передачи'])
                 time.sleep(0.5)
-                while not self.k2_functional.continue_thread: pass
+                while not self.k2_functional.continue_thread:
+                    pass
                 self.check_transmitter()
                 self.next_message_box.emit(['Проверка передатчика', 'Снимите радиостанцию с режима передачи'])
                 time.sleep(0.5)
-                while not self.k2_functional.continue_thread: pass
+                while not self.k2_functional.continue_thread:
+                    pass
             else:
-                if self.k2_functional.random_values: self.default_tx_values()
+                time.sleep(0.2)
+                if self.k2_functional.random_values:
+                    self.default_tx_values()
 
             if self.k2_functional.check_rx:
                 self.mode = 'rx'
                 self.check_receiver()
             else:
-                if self.k2_functional.random_values: self.default_rx_values()
+                time.sleep(0.2)
+                if self.k2_functional.random_values:
+                    self.default_rx_values()
 
             self.k2_functional.check = False
 
@@ -195,7 +208,7 @@ class Check(QObject):
             self.serial_number['value'] = self.get_serial_number()
 
             # Сигнал об успешном завершениии. Передает параметры РС после проверки
-            self.check_status.emit({"message" :'Проверка завершена успешно',
+            self.check_status.emit({"message": 'Проверка завершена успешно',
                                     "params": [
                                         self.serial_number, self.p, self.high_p, self.dev, self.kg, self.chm_u,
                                         self.chm_max, self.selectivity_rc, self.out_pow, self.out_pow_vt,
@@ -212,7 +225,6 @@ class Check(QObject):
             self.get_error_message(log_msg='Start check error', msg=str(algorithm_er))
         except Exception as exc:
             self.get_error_message(log_msg=exc, msg="Неизвестная ошибка, дайте пизды производителю")
-
 
     def check_transmitter(self):
         """ Проверка передатчика"""
@@ -258,12 +270,14 @@ class Check(QObject):
         self.get_check_status()
         self.k2_functional.input_frequency(str(self.f))
 
-
     @next_argument
     def access_check(self):
         """ Пороверка доступа к радиостанции и измерение частоты"""
         self.k2_functional.send_code(CODES['ВЧ ЧАСТ'])
-        self.pause(5)
+        try:
+            self.pause(5)
+        except NextError:
+            return 0
         self.take_result(self.description_tr)
         if self.f < 136.0:
             self.reset_k2()
@@ -272,24 +286,29 @@ class Check(QObject):
             self.reset_k2()
             raise StartError
 
-
     @next_argument
     def power_check(self):
         """ Измерение выходной мощности передатчика в двух диапазонах (высокая и низкая)"""
         self.k2_functional.send_code(CODES['МОЩН'])
-        self.pause(5)
+        try:
+            self.pause(5)
+        except NextError:
+            return 0
         self.take_result(self.description_tr)
         self.next_message_box.emit([
             'Проверка передатчика',
             'Снимите с передачи и переключите уровень мощности'
         ])
         time.sleep(0.5)
-        while not self.k2_functional.continue_thread: pass
-        self.pause(3)
+        while not self.k2_functional.continue_thread:
+            pass
+        try:
+            self.pause(3)
+        except NextError:
+            return 0
         self.take_result(self.description_tr)
         if isinstance(self.p['value'], float) and self.p['value'] < 2.0:
             self.p['is_correct'] = False
-
 
     @next_argument
     def modulation_input_sensitivity_check(self):
@@ -299,7 +318,10 @@ class Check(QObject):
         self.k2_functional.numbers_entry(*value_to_be_entered)
         time.sleep(0.2)
         self.k2_functional.send_code(CODES['mV/kHz'])
-        self.pause(4)
+        try:
+            self.pause(4)
+        except NextError:
+            return 0
         while self.chm < 2.95 or self.chm > 3.05:
             self.take_result(self.description_tr)
             if not self.param_list: continue
@@ -313,11 +335,13 @@ class Check(QObject):
                 self.k2_functional.numbers_entry(*value_to_be_entered)
                 time.sleep(0.2)
                 self.k2_functional.send_code(CODES['mV/kHz'])
-                self.pause(6)
+                try:
+                    self.pause(6)
+                except NextError:
+                    return 0
         if self.chm_u['value'] >= 20 or self.chm_u['value'] == 1:
             self.chm_u['is_correct'] = False
         self.get_check_status()
-
 
     @next_argument
     def harmonic_distortion_check(self):
@@ -327,9 +351,11 @@ class Check(QObject):
             time.sleep(0.2)
         self.get_check_status()
         self.k2_functional.send_code(CODES['ВВОД'])
-        self.pause(10)
+        try:
+            self.pause(10)
+        except NextError:
+            return 0
         self.take_result(self.description_tr)
-
 
     @next_argument
     def max_deviation_check(self):
@@ -337,16 +363,18 @@ class Check(QObject):
         self.k2_functional.send_code(CODES['ВНИЗ'])
         time.sleep(0.1)
         self.k2_functional.send_code(CODES['ВВОД'])
-        self.pause(33)
+        try:
+            self.pause(33)
+        except NextError:
+            return 0
         self.take_result(self.description_tr)
-
 
     @next_argument
     def frequency_deviation_check(self):
         """ Измерение отклонение частоты от номинала"""
-        self.k2_functional.send_code(CODES['ВВЕРХ'])
-        time.sleep(0.1)
-        for _ in range(3):
+        # self.k2_functional.send_code(CODES['ВВЕРХ'])
+        # time.sleep(0.1)
+        for _ in range(7):
             self.k2_functional.send_code(CODES['ВНИЗ'])
             time.sleep(0.1)
         self.k2_functional.send_code(CODES['ВВОД'])
@@ -355,11 +383,13 @@ class Check(QObject):
         self.k2_functional.numbers_entry(*value_to_be_entered)
         self.get_check_status()
         self.k2_functional.send_code(CODES['ВВОД'])
-        self.pause(5)
+        try:
+            self.pause(5)
+        except NextError:
+            return 0
         self.k2_functional.send_code(CODES['ОТКЛ'])
         self.take_result(self.description_tr)
         time.sleep(0.1)
-
 
     def check_receiver(self):
         """ Проверка приёмника"""
@@ -387,17 +417,22 @@ class Check(QObject):
             self.k2_functional.send_code(function)
             time.sleep(0.2)
             if step == 4:
-                self.pause(5)
+                try:
+                    self.pause(5)
+                except NextError:
+                    return 0
                 self.next_message_box.emit(['Проверка приёмника', 'Убавьте выходную мощность регулятором громкости'])
                 time.sleep(0.5)
                 while not self.k2_functional.continue_thread:
                     pass
             if step == 5:
-                self.pause(5)
+                try:
+                    self.pause(5)
+                except NextError:
+                    return 0
 
         self.take_result(self.description_rc)
         self.get_noise_reduction()
-
 
     def get_noise_reduction(self):
         """ Проверка порога срабатывания шумоподавителя"""
@@ -420,7 +455,6 @@ class Check(QObject):
         self.k2_functional.numbers_entry(*value_to_be_entered)
         self.k2_functional.send_code(CODES['mV/kHz'])
 
-
     def take_result(self, func):
         """ Генератор распаковки результатов с COM порта
             :param func - функция расшифровки
@@ -431,7 +465,6 @@ class Check(QObject):
         self.extend_data_list(data_list)
         data_list.sort()
         func(data_list)
-
 
     def description_tr(self, data_list):
         """ Расшифровка результатов проверки передатчика
@@ -464,7 +497,6 @@ class Check(QObject):
 
         self.data = set()
 
-
     def decrypt_power(self, line):
         """ Расшифровка выходной мащности радиостанции
             :param line: Строка со значением мощности полученная с К2-82 через COM порт
@@ -478,7 +510,6 @@ class Check(QObject):
             self.high_p['value'] = 5.0
         else:
             self.high_p['value'] = value
-
 
     def decrypt_frequency(self, line):
         """ Расшифровка частоты радиостанции
@@ -498,7 +529,6 @@ class Check(QObject):
             f = float(line)
             return round(f, 2)
 
-
     def description_rc(self, data_list):
         """ Расшифровка результатов проверки приёмника
             :param data_list - список результатов
@@ -508,7 +538,7 @@ class Check(QObject):
         for line in data_list:
             if 'Kг= ' in line:
                 self.param_list.append(float(line[4:-4]))
-        if len(self.param_list) >=2:
+        if len(self.param_list) >= 2:
             self.out_kg['value'] = self.param_list[-2]
         else:
             self.out_kg['value'] = self.param_list[0]
@@ -519,7 +549,7 @@ class Check(QObject):
         for line in data_list:
             if 'U= ' in line:
                 self.param_list.append(float(line[3:-5]))
-        if len(self.param_list) >=2:
+        if len(self.param_list) >= 2:
             self.out_pow['value'] = self.param_list[-2]
         else:
             self.out_pow['value'] = self.param_list[0]
@@ -530,7 +560,6 @@ class Check(QObject):
             self.out_pow['value'] = 5.0
 
         self.data = set()
-
 
     def noise_reduction_decrypt(self, flag, line, noise_reduction):
         """ Расшифровка параметра порога срабатывания шумоподавителя
@@ -561,7 +590,6 @@ class Check(QObject):
                 time.sleep(1)
         return flag, noise_reduction
 
-
     def get_serial_number(self):
         """ Получение серийного номера с радиостанции """
         if self.k2_functional.model == 'Motorola':
@@ -570,7 +598,6 @@ class Check(QObject):
                 return self.rs_functional.get_serial()
             except Exception as ex:
                 event_log.error(ex)
-
 
     def default_tx_values(self):
         """ Рандомные значения для параметров передатчика"""
@@ -587,7 +614,6 @@ class Check(QObject):
         if self.k2_functional.model in ['Альтавия', 'Радий', 'Icom']:
             self.chm_u['value'] = random.randint(140, 180) / 10
         self.chm_max['value'] = random.randint(410, 495) / 100
-
 
     def default_rx_values(self):
         """ Рандомные значения для параметров приемника"""

@@ -1,13 +1,15 @@
-# Общие настройки и константы
 import os
 from logging_settings import event_log
+
+
+# Файл общих настроек и констант
 
 
 # Название файла конфигураций (для запоминания настроек COM портов)
 CONFIG_FILE_NAME = 'config.ini'
 
 # Версия программы
-VERSION = '0.5.3'
+VERSION = '1.0.1'
 
 # Коды К2-82
 CODES = {
@@ -67,8 +69,9 @@ COLL_NAMES = [
     "Вых P.", "Избер.", "КНИ", "Шумодав", "Деж реж.", "I пр.", "I прд.", "Раздяд\nАКБ", 'ЗУ', 'Тангента'
 ]
 
-#Руководство пользователя
+# Руководство пользователя
 USER_MANUAL_PATH = os.path.normcase('files/user manual.docx')
+
 
 def open_user_manual():
     try:

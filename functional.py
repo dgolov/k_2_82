@@ -3,7 +3,6 @@ import re, serial, time, xlwt
 from settings import CODES
 
 
-
 class ImportToExcel:
     """ Класс для выгрузки результатов проверки радиостанции в Excel документ для дальнейшего копирования в ведомость
         * Создание Excel файла и запись в него результатов
@@ -16,7 +15,6 @@ class ImportToExcel:
         self.sheet = self.book.add_sheet('Sheet')
         self.line = 0
 
-
     def write_book(self, *args):
         """ Запись результатов проверки в Excel документ
             :param args - упакованные результаты проверки радиостанции
@@ -28,7 +26,6 @@ class ImportToExcel:
             row.write(index, value)
         self.line += 1
 
-
     def save_book(self, name):
         """ Сохранение Excel документа
             :param name - имя сохраняемого Excel файла
@@ -36,13 +33,12 @@ class ImportToExcel:
         self.book.save(name + '.xls')
 
 
-
 class Functional:
     """ Общий класс функционала для устройств подключенных к COM портам """
+
     def __init__(self):
         self.port = None
         self.com = None
-
 
     def connect_com_port(self, port):
         """ Соединение с COM портом
@@ -57,27 +53,25 @@ class Functional:
         except serial.SerialException:
             return False
 
-
     def set_com_value(self, port):
         """ :param port:
         """
         self.port = port
 
 
-
 class RSFunctional(Functional):
     """ Функционал подключеия к радиостанции
         Получение серийного номера
     """
+
     def __init__(self):
         super(RSFunctional, self).__init__()
         self._sn_pattern = r'672[a-zA-Z0-9]{7}'
 
-
     def get_serial(self):
         """ Получение серийного номера с радиостанции
         """
-        self.com.write(b'\xf2\x23\x01\xe9')     # ASCII: 'т#<SON>й'
+        self.com.write(b'\xf2\x23\x01\xe9')  # ASCII: 'т#<SON>й'
         result = self.com.readline()
         serial_number_in = result.decode('cp1251')
         serial_number_format = re.search(self._sn_pattern, serial_number_in)
@@ -87,7 +81,6 @@ class RSFunctional(Functional):
         self.com.close()
 
         return str(serial_number_format[0])
-
 
 
 class K2Functional(Functional):
@@ -101,15 +94,15 @@ class K2Functional(Functional):
 
     def __init__(self):
         super(K2Functional, self).__init__()
-        self.check_deviation = True         # Проверка максимальной девиации
-        self.check_tx = True                # Проверять передатчик
-        self.check_rx = True                # Проверять приёмник
-        self.cancel = False                 # Отмена проверки
-        self.check = False                  # Флаг говорящий о том что проверка идет в данный момент
-        self.excel_book = ImportToExcel()   # Объект книги Exel для сохранения ведомостей
-        self.continue_thread = True         # Продолжать выполнение потока. Останавливается при всплывающих сообщениях
-        self.random_values = False          # Рандомные значения
-
+        self.check_deviation = True  # Проверка максимальной девиации
+        self.check_tx = True  # Проверять передатчик
+        self.check_rx = True  # Проверять приёмник
+        self.cancel = False  # Отмена проверки
+        self.next = False  # Пропуск шага проверки
+        self.check = False  # Флаг говорящий о том что проверка идет в данный момент
+        self.excel_book = ImportToExcel()  # Объект книги Excel для сохранения ведомостей
+        self.continue_thread = True  # Продолжать выполнение потока. Останавливается при всплывающих сообщениях
+        self.random_values = False  # Рандомные значения
 
     def send_code(self, code, command=None):
         """ Отправка команды на COM порт
@@ -119,12 +112,11 @@ class K2Functional(Functional):
         try:
             self.com.write(code)
             if command:
-                return  "Команда '{}' отправлена на {}".format(command, self.com.port)
+                return "Команда '{}' отправлена на {}".format(command, self.com.port)
         except serial.SerialException:
             return 'Не удается соедениться с ' + self.com.port
         except (NameError, AttributeError):
             return 'Ошибка {}: Нет подключения'.format(self.port)
-
 
     def input_frequency(self, f):
         """ Установка заданной частоты на К2-82
@@ -151,7 +143,6 @@ class K2Functional(Functional):
 
         self.send_code(CODES['V/MHz'])
         return 'Частота {} установлена на приборе'.format(f)
-
 
     def numbers_entry(self, *args):
         """ Отправка списка числовых значений на прибор (цифровая клавиатура на К2-82)

@@ -9,6 +9,7 @@ def input_check_class(function):
     """ Декоратор подключающий объект класса Check к тестируемым функциям
         :param function: - тестируемая функция
     """
+
     def create_check_object(self, *args, **kwargs):
         self.check = Check(self.k2, self.rs)
         self.check.pause = Mock()
@@ -22,6 +23,7 @@ def input_check_tx_functions(function):
     """ Декоратор создает фейковое поведение вызываемых функций при тестировании функции проверки передатчика
         :param function: - тестируемая функция
     """
+
     def create_mock_functions(self, *args, **kwargs):
         self.check.f = 151.825
         self.check.access_check = Mock()
@@ -37,7 +39,6 @@ def input_check_tx_functions(function):
     return create_mock_functions
 
 
-
 class TestCheck(unittest.TestCase):
 
     def setUp(self):
@@ -48,7 +49,6 @@ class TestCheck(unittest.TestCase):
         self.k2.numbers_entry = Mock()
         self.k2.com = Mock()
         self.k2.com.close = Mock()
-
 
     @input_check_tx_functions
     def test_check_transmitter_normal(self):
@@ -66,7 +66,6 @@ class TestCheck(unittest.TestCase):
         self.assertEqual(self.check.i['value'], 50)
         self.assertTrue(self.check.i['is_correct'])
 
-
     @input_check_tx_functions
     def test_check_transmitter_off_check_max_deviation(self):
         self.k2.check_deviation = False
@@ -77,7 +76,6 @@ class TestCheck(unittest.TestCase):
         self.assertEqual(self.check.chm_max['value'], 4.9)
         self.assertTrue(self.check.chm_max['is_correct'])
 
-
     @input_check_tx_functions
     def test_check_transmitter_altavia(self):
         self.k2.model = 'Альтавия'
@@ -87,7 +85,6 @@ class TestCheck(unittest.TestCase):
         self.assertTrue(self.check.chm_u['is_correct'])
         self.assertEqual(self.check.i['value'], 40)
         self.assertTrue(self.check.i['is_correct'])
-
 
     @input_check_tx_functions
     def test_check_transmitter_icom(self):
@@ -100,13 +97,11 @@ class TestCheck(unittest.TestCase):
         self.assertEqual(self.check.i['value'], 70)
         self.assertTrue(self.check.i['is_correct'])
 
-
     @input_check_class
     def test_access_check_normal(self):
         self.k2.com.readlines = Mock(return_value=['f=152.6489 МГц '.encode('cp866')])
         self.check.access_check()
         self.assertEqual(self.check.f, 152.650)
-
 
     @input_check_class
     def test_access_check_no_rs_connection(self):
@@ -118,7 +113,6 @@ class TestCheck(unittest.TestCase):
             message = str(exc)
         self.assertEqual(message, 'Нет связи с радиостанцией. Проверьте питание и PTT')
 
-
     @input_check_class
     def test_access_check_no_k2_connection(self):
         message = ''
@@ -128,7 +122,6 @@ class TestCheck(unittest.TestCase):
         except Exception as exc:
             message = str(exc)
         self.assertEqual(message, 'Нет связи с К2-82. Проверьте подключение и активность УСТ и ДУ')
-
 
     @input_check_class
     def test_power_check_low_normal(self):
@@ -140,7 +133,6 @@ class TestCheck(unittest.TestCase):
         self.assertEqual(self.check.high_p['value'], '-')
         self.assertTrue(self.check.high_p['is_correct'])
 
-
     @input_check_class
     def test_power_check_low_few_value(self):
         self.k2.com.readlines = Mock(return_value=['P= 1.54   Вт '.encode('cp866')])
@@ -150,7 +142,6 @@ class TestCheck(unittest.TestCase):
         self.assertFalse(self.check.p['is_correct'])
         self.assertEqual(self.check.high_p['value'], '-')
         self.assertTrue(self.check.high_p['is_correct'])
-
 
     @input_check_class
     def test_power_check_high_normal(self):
@@ -162,7 +153,6 @@ class TestCheck(unittest.TestCase):
         self.assertEqual(self.check.high_p['value'], 5.0)
         self.assertTrue(self.check.high_p['is_correct'])
 
-
     @input_check_class
     def test_power_check_all_normal(self):
         self.k2.com.readlines = Mock(return_value=['P= 5.12   Вт '.encode('cp866'), 'P= 2.61   Вт '.encode('cp866')])
@@ -173,47 +163,41 @@ class TestCheck(unittest.TestCase):
         self.assertEqual(self.check.high_p['value'], 5.0)
         self.assertTrue(self.check.high_p['is_correct'])
 
-
     @input_check_class
     def test_modulation_input_sensitivity_check(self):
         self.check.chm_u['value'] = 9.5
-        self.k2.com.readlines = Mock(return_value=['ЧМ+= 3.01  мВ '.encode('cp866'),])
+        self.k2.com.readlines = Mock(return_value=['ЧМ+= 3.01  мВ '.encode('cp866'), ])
         self.check.modulation_input_sensitivity_check()
         self.assertEqual(self.check.chm_u['value'], 9.5)
         self.assertTrue(self.check.chm_u['is_correct'])
 
-
     @input_check_class
     def test_harmonic_distortion_check_normal(self):
-        self.k2.com.readlines = Mock(return_value=['Kг= 1.01  % '.encode('cp866'),])
+        self.k2.com.readlines = Mock(return_value=['Kг= 1.01  % '.encode('cp866'), ])
         self.check.harmonic_distortion_check()
         self.assertEqual(self.check.kg['value'], 1.01)
         self.assertTrue(self.check.kg['is_correct'])
 
-
     @input_check_class
     def test_harmonic_distortion_check_not_correct(self):
-        self.k2.com.readlines = Mock(return_value=['Kг= 3.01  % '.encode('cp866'),])
+        self.k2.com.readlines = Mock(return_value=['Kг= 3.01  % '.encode('cp866'), ])
         self.check.harmonic_distortion_check()
         self.assertEqual(self.check.kg['value'], 3.01)
         self.assertFalse(self.check.kg['is_correct'])
 
-
     @input_check_class
     def test_max_deviation_check_normal(self):
-        self.k2.com.readlines = Mock(return_value=['ЧМмах= 4.92   мВ '.encode('cp866'),])
+        self.k2.com.readlines = Mock(return_value=['ЧМмах= 4.92   мВ '.encode('cp866'), ])
         self.check.harmonic_distortion_check()
         self.assertEqual(self.check.chm_max['value'], 4.92)
         self.assertTrue(self.check.chm_max['is_correct'])
 
-
     @input_check_class
     def test_max_deviation_check_not_correct(self):
-        self.k2.com.readlines = Mock(return_value=['ЧМмах= 5.23   мВ '.encode('cp866'),])
+        self.k2.com.readlines = Mock(return_value=['ЧМмах= 5.23   мВ '.encode('cp866'), ])
         self.check.harmonic_distortion_check()
         self.assertEqual(self.check.chm_max['value'], 5.23)
         self.assertFalse(self.check.chm_max['is_correct'])
-
 
     @input_check_class
     def test_max_deviation_check_no_data(self):
@@ -221,7 +205,6 @@ class TestCheck(unittest.TestCase):
         self.check.harmonic_distortion_check()
         self.assertEqual(self.check.chm_max['value'], '-')
         self.assertTrue(self.check.chm_max['is_correct'])
-
 
     @input_check_class
     def test_frequency_deviation_check_normal(self):
@@ -231,7 +214,6 @@ class TestCheck(unittest.TestCase):
         self.assertEqual(self.check.dev['value'], 213)
         self.assertTrue(self.check.dev['is_correct'])
 
-
     @input_check_class
     def test_frequency_deviation_check_not_correct(self):
         self.check.f = 151.825
@@ -240,6 +222,69 @@ class TestCheck(unittest.TestCase):
         self.assertEqual(self.check.dev['value'], 853)
         self.assertFalse(self.check.dev['is_correct'])
 
+    def test_noise_reduction_decrypt_normal(self):
+        mock_line = ['Kг= 25.01  % ', 'U= 2.3   В ']
+        # self.k2.numbers_entry = Mock()
+        self.k2.com.readlines = Mock(return_value=mock_line)
+        flag, noise_reduction = True, 25
+        for line in mock_line:
+            if flag:
+                flag, noise_reduction = self.check.noise_reduction_decrypt(flag, line, noise_reduction)
+        self.assertEqual(noise_reduction, 24)
+        self.assertTrue(flag)
+        self.assertTrue(self.check.noise_reduction['is_correct'])
+        self.assertTrue(self.k2.numbers_entry.assert_called)
+
+    def test_noise_reduction_decrypt_with_kg_99_presents(self):
+        mock_line = ['Kг= 99.0  % ', 'U= 2.3   В ']
+        self.k2.com.readlines = Mock(return_value=mock_line)
+        flag, noise_reduction = True, 18
+        for line in mock_line:
+            if flag:
+                flag, noise_reduction = self.check.noise_reduction_decrypt(flag, line, noise_reduction)
+        self.assertEqual(noise_reduction, 19)
+        self.assertFalse(flag)
+
+    def test_noise_reduction_decrypt_with_big_u_value(self):
+        mock_line = ['Kг= 25.01  % ', 'U= 22.3   В ']
+        self.k2.com.readlines = Mock(return_value=mock_line)
+        flag, noise_reduction = True, 18
+        for line in mock_line:
+            if flag:
+                flag, noise_reduction = self.check.noise_reduction_decrypt(flag, line, noise_reduction)
+        self.assertEqual(noise_reduction, 18)
+        self.assertFalse(flag)
+
+    def test_noise_reduction_decrypt_with_u_2_volts(self):
+        mock_line = ['Kг= 25.01  % ', 'U= 2.0   В ']
+        self.k2.com.readlines = Mock(return_value=mock_line)
+        flag, noise_reduction = True, 18
+        for line in mock_line:
+            if flag:
+                flag, noise_reduction = self.check.noise_reduction_decrypt(flag, line, noise_reduction)
+        self.assertEqual(noise_reduction, 18)
+        self.assertFalse(flag)
+
+    def test_noise_reduction_decrypt_with_u_milli_volts(self):
+        mock_line = ['Kг= 25.01  % ', 'U= 2.0  мВ ']
+        self.k2.com.readlines = Mock(return_value=mock_line)
+        flag, noise_reduction = True, 18
+        for line in mock_line:
+            if flag:
+                flag, noise_reduction = self.check.noise_reduction_decrypt(flag, line, noise_reduction)
+        self.assertEqual(noise_reduction, 18)
+        self.assertFalse(flag)
+
+    def test_noise_reduction_decrypt_not_correct(self):
+        mock_line = ['Kг= 25.01  % ', 'U= 2.3   В ']
+        self.k2.com.readlines = Mock(return_value=mock_line)
+        flag, noise_reduction = True, 10
+        for line in mock_line:
+            if flag:
+                flag, noise_reduction = self.check.noise_reduction_decrypt(flag, line, noise_reduction)
+        self.assertEqual(noise_reduction, 10)
+        self.assertFalse(flag)
+        self.assertFalse(self.check.noise_reduction['is_correct'])
 
     def test_get_serial_number(self):
         self.k2.model = 'Motorola'
@@ -247,7 +292,6 @@ class TestCheck(unittest.TestCase):
         self.rs.get_serial = Mock(return_value='672TQUM2433')
         sn = self.check.get_serial_number()
         self.assertEqual(sn, '672TQUM2433')
-
 
 
 if __name__ == '__main__':

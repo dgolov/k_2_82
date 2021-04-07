@@ -19,6 +19,7 @@ class UiMainWindow(QMainWindow):
         super().__init__()
         self.main_window = QtWidgets.QWidget(self)
         self.k2_frame = QtWidgets.QFrame(self.main_window)
+        self.check_rs_button = QtWidgets.QPushButton('Проверка параметров', self.main_window)
 
         # Информационного экран
         self.screen_frame = QtWidgets.QFrame(self.k2_frame)
@@ -264,31 +265,37 @@ class UiMainWindow(QMainWindow):
         self.choice_of_the_model.addItem(icon4, "   Icom")
         self.choice_of_the_model.addItem(icon4, "   Радий")
 
-        check_rs_button = QtWidgets.QPushButton('Проверка параметров', self.main_window)
-        check_rs_button.setGeometry(QtCore.QRect(30, 520, 171, button_height))
+        self.check_rs_button.setGeometry(QtCore.QRect(30, 520, 171, button_height))
         icon1 = QtGui.QIcon()
         icon1.addPixmap(QtGui.QPixmap("images\\start.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        check_rs_button.setIcon(icon1)
-        check_rs_button.clicked.connect(self.check_rs_button_click)
+        self.check_rs_button.setIcon(icon1)
+        self.check_rs_button.clicked.connect(self.check_rs_button_click)
+
+        button_pass = QtWidgets.QPushButton('  Пропустить шаг        ', self.main_window)
+        button_pass.setGeometry(QtCore.QRect(30, 570, 171, button_height))
+        icon2 = QtGui.QIcon()
+        icon2.addPixmap(QtGui.QPixmap("images\\next.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        button_pass.setIcon(icon2)
+        button_pass.clicked.connect(self.button_pass_click)
 
         button_cancel = QtWidgets.QPushButton('   Отмена проверки    ', self.main_window)
-        button_cancel.setGeometry(QtCore.QRect(30, 570, 171, button_height))
+        button_cancel.setGeometry(QtCore.QRect(30, 620, 171, button_height))
         icon2 = QtGui.QIcon()
         icon2.addPixmap(QtGui.QPixmap("images\\cancel.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         button_cancel.setIcon(icon2)
         button_cancel.clicked.connect(self.button_cancel_click)
 
         tx_flag = QtWidgets.QCheckBox('Проверять передатчик', self.main_window)
-        tx_flag.setGeometry(QtCore.QRect(32, 620, 161, 21))
+        tx_flag.setGeometry(QtCore.QRect(32, 670, 161, 21))
         tx_flag.toggle()
         tx_flag.stateChanged.connect(self.tx_flag_click)
 
         deviation_flag = QtWidgets.QCheckBox('Пропуск max девиации', self.main_window)
-        deviation_flag.setGeometry(QtCore.QRect(32, 670, 161, 21))
+        deviation_flag.setGeometry(QtCore.QRect(32, 720, 161, 21))
         deviation_flag.stateChanged.connect(self.deviation_flag_click)
 
         rx_flag = QtWidgets.QCheckBox('Проверять приёмник', self.main_window)
-        rx_flag.setGeometry(QtCore.QRect(32, 720, 161, 21))
+        rx_flag.setGeometry(QtCore.QRect(32, 770, 161, 21))
         rx_flag.toggle()
         rx_flag.stateChanged.connect(self.rx_flag_click)
 
@@ -497,18 +504,23 @@ class UiMainWindow(QMainWindow):
         """ Кнопка запуска цикла проверки радиостанции
             Запускает отдельный поток для проверки и формирует получение сигналов из этого потока
         """
-        self.thread = QThread()
-        self.k2_functional.model = self.choice_of_the_model.currentText()[3:]
-        self.k2_functional.connect_com_port(self.k2_functional.port)
+        self.check_rs_button.setEnabled(False)
+        try:
+            self.thread = QThread()
+            self.k2_functional.model = self.choice_of_the_model.currentText()[3:]
+            self.k2_functional.connect_com_port(self.k2_functional.port)
 
-        self.new_check = Check(self.k2_functional, self.rs_functional)
-        self.new_check.moveToThread(self.thread)
-        self.new_check.next_screen_text.connect(self.screen_text.setText)
-        self.new_check.next_message_box.connect(self.message_box)
-        self.new_check.check_status.connect(self.get_check_result)
+            self.new_check = Check(self.k2_functional, self.rs_functional)
+            self.new_check.moveToThread(self.thread)
+            self.new_check.next_screen_text.connect(self.screen_text.setText)
+            self.new_check.next_message_box.connect(self.message_box)
+            self.new_check.check_status.connect(self.get_check_result)
 
-        self.thread.started.connect(self.new_check.run)
-        self.thread.start()
+            self.thread.started.connect(self.new_check.run)
+            self.thread.start()
+        except Exception as exc:
+            print(exc)
+            self.check_rs_button.setEnabled(True)
 
 
     def get_check_result(self, check_result):
@@ -522,6 +534,7 @@ class UiMainWindow(QMainWindow):
         if check_result['params'] is None:
             self.thread.terminate()
             self.thread = None
+            self.check_rs_button.setEnabled(True)
             return
 
         col = 0
@@ -553,6 +566,7 @@ class UiMainWindow(QMainWindow):
         self.row += 1
         self.thread.terminate()
         self.thread = None
+        self.check_rs_button.setEnabled(True)
 
 
     def message_box(self, message):
@@ -571,6 +585,13 @@ class UiMainWindow(QMainWindow):
         if self.k2_functional.check:
             self.k2_functional.cancel = True
             self.thread.terminate()
+            self.check_rs_button.setEnabled(True)
+
+
+    def button_pass_click(self):
+        """ Кнопка отмены цикла проверки """
+        if self.k2_functional.check:
+            self.k2_functional.next = True
 
 
     def get_frequency_button_click(self, event=None):
@@ -711,7 +732,7 @@ class UiMainWindow(QMainWindow):
 
                                                         Разработчик Голов Д.Е. ©
                                                         ООО  "Телеком - Сервис"
-                                                        2020 г.
+                                                        2020-2021 г.
     '''.format(VERSION)
     )
 
