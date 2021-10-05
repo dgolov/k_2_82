@@ -90,7 +90,7 @@ class K2Functional(Functional):
         * Установка частоты на К2-82
         * Отправка числовых значений на К2-82
     """
-    model = 'Motorola'
+    model = 'Motorola GP340'
 
     def __init__(self):
         super(K2Functional, self).__init__()

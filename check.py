@@ -228,15 +228,21 @@ class Check(QObject):
 
     def check_transmitter(self):
         """ Проверка передатчика"""
-        if self.k2_functional.model == 'Motorola':
+        if self.k2_functional.model == 'Motorola GP340' or self.k2_functional.model == 'Comrade':
             self.chm_u['value'] = 9.5
             self.i['value'] = 50
+        if self.k2_functional.model == 'Motorola DP2400':
+            self.chm_u['value'] = 9.5
+            self.i['value'] = 70
         elif self.k2_functional.model == 'Альтавия':
             self.chm_u['value'] = 15
             self.i['value'] = 40
         elif self.k2_functional.model == 'Icom':
             self.chm_u['value'] = 16
             self.i['value'] = 70
+        elif self.k2_functional.model == 'РН 311М':
+            self.chm_u['value'] = 16
+            self.i['value'] = 110
 
         self.k2_functional.send_code(CODES['УСТ'])
         self.get_check_status()
@@ -395,9 +401,13 @@ class Check(QObject):
         """ Проверка приёмника"""
         self.out_pow_vt['value'] = '>0.5'
         self.selectivity['value'] = random.randint(70, 71)
-        if self.k2_functional.model == 'Motorola':
+        if self.k2_functional.model == 'Motorola GP340' or self.k2_functional.model == 'Comrade':
             self.i['value'] = 50
             self.selectivity_rc['value'] = random.randint(20, 24) / 100
+            self.i_rc = {'value': random.randint(30, 35) * 10, 'is_correct': True}
+        elif self.k2_functional.model == 'Motorola DP2400':
+            self.i['value'] = 70
+            self.selectivity_rc['value'] = random.randint(15, 18) / 100
             self.i_rc = {'value': random.randint(30, 35) * 10, 'is_correct': True}
         elif self.k2_functional.model == 'Альтавия':
             self.i['value'] = 40
@@ -407,6 +417,10 @@ class Check(QObject):
             self.i['value'] = 70
             self.selectivity_rc['value'] = random.randint(20, 24) / 100
             self.i_rc['value'] = random.randint(18, 23) * 10
+        elif self.k2_functional.model == 'РН 311М':
+            self.i['value'] = 110
+            self.selectivity_rc['value'] = random.randint(20, 24) / 100
+            self.i_rc['value'] = random.randint(40, 50) * 10
 
         for step, function in enumerate(CHECK_RX_CODES):
             self.get_check_status()
@@ -592,26 +606,29 @@ class Check(QObject):
 
     def get_serial_number(self):
         """ Получение серийного номера с радиостанции """
-        if self.k2_functional.model == 'Motorola':
-            try:
-                self.rs_functional.connect_com_port(self.rs_functional.port)
-                return self.rs_functional.get_serial()
-            except Exception as ex:
-                event_log.error(ex)
+        # if self.k2_functional.model == 'Motorola GP340':
+        try:
+            self.rs_functional.connect_com_port(self.rs_functional.port)
+            return self.rs_functional.get_serial()
+        except Exception as ex:
+            event_log.error(ex)
 
     def default_tx_values(self):
         """ Рандомные значения для параметров передатчика"""
         self.dev['value'] = random.randint(15, 290)
         self.dev['is_correct'] = True
-        self.p['value'] = random.randint(200, 300) / 100
+        if self.k2_functional.model == 'РН 311М':
+            self.p['value'] = '-'
+        else:
+            self.p['value'] = random.randint(200, 300) / 100
         if self.k2_functional.model == 'Радий':
             self.high_p['value'] = '-'
         else:
             self.high_p['value'] = random.randint(400, 500) / 100
         self.kg['value'] = random.randint(8, 20) / 10
-        if self.k2_functional.model == 'Motorola':
+        if self.k2_functional.model in ['Motorola GP340', 'Motorola DP2400', 'Comrade']:
             self.chm_u['value'] = random.randint(90, 100) / 10
-        if self.k2_functional.model in ['Альтавия', 'Радий', 'Icom']:
+        elif self.k2_functional.model in ['Альтавия', 'Радий', 'Icom', 'РН 311М']:
             self.chm_u['value'] = random.randint(140, 180) / 10
         self.chm_max['value'] = random.randint(410, 495) / 100
 
@@ -620,16 +637,31 @@ class Check(QObject):
         if self.k2_functional.model == 'Альтавия':
             self.out_pow['value'] = random.randint(200, 265) / 100
             self.selectivity_rc['value'] = random.randint(16, 19) / 100
-            self.noise_reduction['value'] = random.randint(13, 16) / 100
+            self.noise_reduction['value'] = random.randint(13, 15) / 100
+        elif self.k2_functional.model == 'Motorola DP2400':
+            self.out_pow['value'] = random.randint(400, 495) / 100
+            self.selectivity_rc['value'] = random.randint(15, 18) / 100
+            self.noise_reduction['value'] = random.randint(12, 14) / 100
+        elif self.k2_functional.model == 'Comrade':
+            self.out_pow['value'] = random.randint(200, 265) / 100
+            self.selectivity_rc['value'] = random.randint(20, 24) / 100
+            self.noise_reduction['value'] = random.randint(15, 19) / 100
+        elif self.k2_functional.model == 'РН 311М':
+            self.out_pow['value'] = random.randint(300, 400) / 100
+            self.selectivity_rc['value'] = random.randint(20, 24) / 100
+            self.noise_reduction['value'] = random.randint(15, 19) / 100
         else:
             self.out_pow['value'] = random.randint(400, 495) / 100
-            self.selectivity_rc['value'] = random.randint(20, 24) / 100
+            self.selectivity_rc['value'] = random.randint(21, 24) / 100
             self.noise_reduction['value'] = random.randint(15, 20) / 100
         self.out_pow_vt['value'] = '>0.5'
         self.selectivity['value'] = random.randint(70, 71)
         self.out_kg['value'] = random.randint(100, 300) / 100
-        if self.k2_functional.model == 'Motorola':
+        if self.k2_functional.model == 'Motorola GP340' or self.k2_functional.model == 'Comrade':
             self.i['value'] = 50
+            self.i_rc['value'] = random.randint(30, 35) * 10
+        elif self.k2_functional.model == 'Motorola DP2400':
+            self.i['value'] = 70
             self.i_rc['value'] = random.randint(30, 35) * 10
         elif self.k2_functional.model == 'Альтавия':
             self.i['value'] = 40
@@ -640,3 +672,6 @@ class Check(QObject):
         elif self.k2_functional.model == 'Icom':
             self.i['value'] = 70
             self.i_rc['value'] = random.randint(24, 27) * 10
+        elif self.k2_functional.model == 'РН 311М':
+            self.i['value'] = 110
+            self.i_rc['value'] = random.randint(40, 50) * 10

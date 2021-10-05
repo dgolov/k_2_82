@@ -9,7 +9,7 @@ from logging_settings import event_log
 CONFIG_FILE_NAME = 'config.ini'
 
 # Версия программы
-VERSION = '1.0.1'
+VERSION = '1.0.3'
 
 # Коды К2-82
 CODES = {
@@ -51,23 +51,23 @@ CODES = {
 }
 
 # Коды проверки передатчика
-CHECK_TX_CODES = [
+CHECK_TX_CODES = (
     CODES['ВНИЗ'], CODES['0'], CODES['.'], CODES['5'], CODES['mV/kHz'], CODES['ВЧ ЧМ'], CODES['3'], CODES['mV/kHz'],
     CODES['ВНИЗ'], CODES['1'], CODES['mV/kHz'], CODES['УСТ']
-]
+)
 
 # Коды проверки приемника
-CHECK_RX_CODES = [
+CHECK_RX_CODES = (
     CODES['УСТ'], CODES['НЧ ДОП2'], CODES['ВНИЗ'], CODES['ВВОД'], CODES['mV/kHz'], CODES['ВВОД'], CODES['0'],
     CODES['.'], CODES['2'], CODES['5'], CODES['uV/Hz']
-]
+)
 
 
 # Названия колонок в таблице
-COLL_NAMES = [
+COLL_NAMES = (
     "№ РC", "№ АКБ", "Ёмкость", "P", "Выс. P", "Откл.", "КНИ", "ЧМ", "Max дев.", "Чувств.", "Вых. P",
     "Вых P.", "Избер.", "КНИ", "Шумодав", "Деж реж.", "I пр.", "I прд.", "Раздяд\nАКБ", 'ЗУ', 'Тангента'
-]
+)
 
 # Руководство пользователя
 USER_MANUAL_PATH = os.path.normcase('files/user manual.docx')

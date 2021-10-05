@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 # Created by: PyQt5 UI code generator 5.13.2
 #
-import io, csv
+import csv
+import io
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QThread, QSettings
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QAction, qApp, QMessageBox
 from PyQt5.QtGui import QIcon
-from functional import K2Functional, RSFunctional
+
 from check import Check
+from functional import K2Functional, RSFunctional
+
 from utils import DecibelCalc
 from settings import *
 
@@ -260,10 +263,13 @@ class UiMainWindow(QMainWindow):
         self.choice_of_the_model.setGeometry(QtCore.QRect(30, 470, 171, button_height))
         icon4 = QtGui.QIcon()
         icon4.addPixmap(QtGui.QPixmap("images\\model.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.choice_of_the_model.addItem(icon4, "   Motorola")
+        self.choice_of_the_model.addItem(icon4, "   Motorola GP340")
+        self.choice_of_the_model.addItem(icon4, "   Motorola DP2400")
         self.choice_of_the_model.addItem(icon4, "   Альтавия")
         self.choice_of_the_model.addItem(icon4, "   Icom")
         self.choice_of_the_model.addItem(icon4, "   Радий")
+        self.choice_of_the_model.addItem(icon4, "   Comrade")
+        self.choice_of_the_model.addItem(icon4, "   РН 311М")
 
         self.check_rs_button.setGeometry(QtCore.QRect(30, 520, 171, button_height))
         icon1 = QtGui.QIcon()

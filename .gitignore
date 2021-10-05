@@ -3,6 +3,5 @@ events.log
 env
 build
 dist
-files
 __pycache__
 config.ini
