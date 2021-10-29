@@ -10,7 +10,7 @@ from logging_settings import event_log
 CONFIG_FILE_NAME = 'config.ini'
 
 # Версия программы
-VERSION = '1.0.3'
+VERSION = '1.0.4'
 
 # Коды К2-82
 CODES = {

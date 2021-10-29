@@ -17,6 +17,7 @@ from settings import *
 
 class UiMainWindow(QMainWindow):
     """ Окно пользовательского интерфейса программы """
+
     def __init__(self):
         super().__init__()
         self.main_window = QtWidgets.QWidget(self)
@@ -47,7 +48,7 @@ class UiMainWindow(QMainWindow):
         self.choice_of_the_model = QtWidgets.QComboBox(self.main_window)
         self.get_frequency = QtWidgets.QLineEdit(self.main_window)
 
-        self.thread = None # Дополнительный поток для функций проверки радиостанции
+        self.thread = None  # Дополнительный поток для функций проверки радиостанции
 
         # Дополнительные утилиты
         self.db_calc = DecibelCalc()
@@ -59,7 +60,7 @@ class UiMainWindow(QMainWindow):
         self.resize(1820, 980)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("images\\icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        icon.addPixmap(QtGui.QPixmap("images/icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
         self.setWindowIcon(icon)
         self.setWindowTitle("К2-82 v {}".format(VERSION))
 
@@ -80,7 +81,6 @@ class UiMainWindow(QMainWindow):
 
         self.statusBar().showMessage('COM порт К2-82: {}    |   COM порт радиостанции: {}'.format(
             self.k2_functional.port, self.rs_functional.port))
-
 
     def init_device(self):
         """ Инициализация приборной панели, надписей и линей на ней """
@@ -113,15 +113,16 @@ class UiMainWindow(QMainWindow):
         font = QtGui.QFont()
         font.setWeight(50)
         labels = ['Перед началом работы не забудь активировать кнопки УСТ и ДУ на приборе.',
-                 'Режим', 'ВЧ', 'НЧ', 'Измерение']
+                  'Режим', 'ВЧ', 'НЧ', 'Измерение']
         labels_geometry = [(60, 20, 700, 20), (20, 210, 281, 20), (295, 210, 271, 20), (575, 210, 301, 20),
-                    (893, 210, 531, 20)]
+                           (893, 210, 531, 20)]
         for i in range(5):
             font.setPointSize(11)
             label = QtWidgets.QLabel(self.k2_frame)
             label.setText(labels[i])
             label.setGeometry(QtCore.QRect(*labels_geometry[i]))
-            if i == 0: font.setPointSize(9)
+            if i == 0:
+                font.setPointSize(9)
             else:
                 label.setAlignment(QtCore.Qt.AlignCenter)
                 label.setStyleSheet("color: rgb(18, 18, 18);")
@@ -131,24 +132,30 @@ class UiMainWindow(QMainWindow):
         for i in range(5):
             line = QtWidgets.QFrame(self.k2_frame)
 
-            if i == 0: line.setGeometry(QtCore.QRect(280, 200, 20, 209))
-            elif i == 1: line.setGeometry(QtCore.QRect(560, 200, 20, 209))
-            elif i == 2: line.setGeometry(QtCore.QRect(875, 1, 20, 408))
-            elif i == 3: line.setGeometry(QtCore.QRect(1, 190, 1428, 20))
-            elif i == 4: line.setGeometry(QtCore.QRect(1, 230, 1428, 20))
+            if i == 0:
+                line.setGeometry(QtCore.QRect(280, 200, 20, 209))
+            elif i == 1:
+                line.setGeometry(QtCore.QRect(560, 200, 20, 209))
+            elif i == 2:
+                line.setGeometry(QtCore.QRect(875, 1, 20, 408))
+            elif i == 3:
+                line.setGeometry(QtCore.QRect(1, 190, 1428, 20))
+            elif i == 4:
+                line.setGeometry(QtCore.QRect(1, 230, 1428, 20))
 
-            if i in range(3): line.setFrameShape(QtWidgets.QFrame.VLine)
-            else: line.setFrameShape(QtWidgets.QFrame.HLine)
+            if i in range(3):
+                line.setFrameShape(QtWidgets.QFrame.VLine)
+            else:
+                line.setFrameShape(QtWidgets.QFrame.HLine)
 
             line.setFrameShadow(QtWidgets.QFrame.Sunken)
-
 
     def init_buttons(self):
         """ Инициализация всех кнопок в программе """
         button_width = 93
         button_height = 30
 
-         # Кнопки на приборе
+        # Кнопки на приборе
         button_mhz = QPushButton("V/MHz", self.main_window)
         button_mhz.setGeometry(QtCore.QRect(790, 70, button_width, button_height))
         button_mhz.clicked.connect(lambda: self.click_button(text='V/MHz', code=CODES['V/MHz']))
@@ -261,7 +268,7 @@ class UiMainWindow(QMainWindow):
         # Кнопки слева от таблицы
         self.choice_of_the_model.setGeometry(QtCore.QRect(30, 470, 171, button_height))
         icon4 = QtGui.QIcon()
-        icon4.addPixmap(QtGui.QPixmap("images\\model.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon4.addPixmap(QtGui.QPixmap("images/model.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.choice_of_the_model.addItem(icon4, "   Motorola GP340")
         self.choice_of_the_model.addItem(icon4, "   Motorola DP2400")
         self.choice_of_the_model.addItem(icon4, "   Альтавия")
@@ -272,21 +279,21 @@ class UiMainWindow(QMainWindow):
 
         self.check_rs_button.setGeometry(QtCore.QRect(30, 520, 171, button_height))
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("images\\start.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon1.addPixmap(QtGui.QPixmap("images/start.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.check_rs_button.setIcon(icon1)
         self.check_rs_button.clicked.connect(self.check_rs_button_click)
 
         button_pass = QtWidgets.QPushButton('  Пропустить шаг        ', self.main_window)
         button_pass.setGeometry(QtCore.QRect(30, 570, 171, button_height))
         icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap("images\\next.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon2.addPixmap(QtGui.QPixmap("images/next.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         button_pass.setIcon(icon2)
         button_pass.clicked.connect(self.button_pass_click)
 
         button_cancel = QtWidgets.QPushButton('   Отмена проверки    ', self.main_window)
         button_cancel.setGeometry(QtCore.QRect(30, 620, 171, button_height))
         icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap("images\\cancel.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon2.addPixmap(QtGui.QPixmap("images/cancel.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         button_cancel.setIcon(icon2)
         button_cancel.clicked.connect(self.button_cancel_click)
 
@@ -319,7 +326,7 @@ class UiMainWindow(QMainWindow):
         get_frequency_button = QtWidgets.QPushButton('   Ввод   ', self.main_window)
         get_frequency_button.setGeometry(QtCore.QRect(1670, 90, 100, button_height))
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap("images\\frequency.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon3.addPixmap(QtGui.QPixmap("images/frequency.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         get_frequency_button.setIcon(icon3)
         get_frequency_button.clicked.connect(self.get_frequency_button_click)
 
@@ -327,7 +334,6 @@ class UiMainWindow(QMainWindow):
         clear_table_button = QtWidgets.QPushButton('Очистить таблицу', self.main_window)
         clear_table_button.setGeometry(QtCore.QRect(1600, 880, 171, button_height))
         clear_table_button.clicked.connect(self.clear_table)
-
 
     def init_table(self):
         """ Инициализация таблицы результатов """
@@ -385,7 +391,6 @@ class UiMainWindow(QMainWindow):
             return True
         return super().eventFilter(source, event)
 
-
     def table_update(self, item):
         """ Автозамена введенных пользователем значений в таблице
             В поле емкость акб 'n' и 'N' автоматически заменяется на 'N/R'
@@ -403,8 +408,8 @@ class UiMainWindow(QMainWindow):
         elif (text == 'Б' or text == 'B' or text == ',') and item.column() == 1:
             item.setText('Б/Н')
         elif item.column() == 17:
-            if str(text).isdigit():         # Если текст состоит только из цифр (например 123) то делим это
-                text = float(text) / 100    # значение на 100 чтобы получить корректное значение 1,23
+            if str(text).isdigit():  # Если текст состоит только из цифр (например 123) то делим это
+                text = float(text) / 100  # значение на 100 чтобы получить корректное значение 1,23
             item.setText(str(text).replace('.', ','))
         elif (text == 'И' or text == 'B' or text == '+') and (item.column() == 19 or item.column() == 20):
             item.setText('исп')
@@ -412,7 +417,6 @@ class UiMainWindow(QMainWindow):
             item.setText('не исп')
         else:
             item.setText(text)
-
 
     def copy_selection(self):
         """ Копирование данных из таблицы в формате Excel
@@ -442,10 +446,10 @@ class UiMainWindow(QMainWindow):
     def init_menu(self):
         """ Инициализация меню """
         menu_bar = self.menuBar()
-        check_action = QAction(QIcon('images\\start.png'), '&Проверка параметров', self)
+        check_action = QAction(QIcon('images/start.png'), '&Проверка параметров', self)
         check_action.setShortcut('Ctrl+A')
         check_action.triggered.connect(self.check_rs_button_click)
-        exit_action = QAction(QIcon('images\\exit.png'), '&Выход', self)
+        exit_action = QAction(QIcon('images/exit.png'), '&Выход', self)
         exit_action.setShortcut('Ctrl+Q')
         exit_action.triggered.connect(self.closeEvent)
         help_action = QAction('&О программе', self)
@@ -465,7 +469,7 @@ class UiMainWindow(QMainWindow):
         self.rs_com2_action.triggered.connect(lambda: self.choice_com_port(com_port='COM2', device='RS'))
         self.rs_com3_action.setCheckable(True)
         self.rs_com3_action.triggered.connect(lambda: self.choice_com_port(com_port='COM3', device='RS'))
-        decibel_calc_action = QAction(QIcon('images\\calc.ico'), '&Калькулятор децибел', self)
+        decibel_calc_action = QAction(QIcon('images/calc.ico'), '&Калькулятор децибел', self)
         decibel_calc_action.triggered.connect(self.db_calc.show)
 
         file_menu = menu_bar.addMenu('&Файл')
@@ -499,7 +503,8 @@ class UiMainWindow(QMainWindow):
         if not self.k2_functional.check:
             try:
                 self.k2_functional.com.close()
-            except AttributeError: pass
+            except AttributeError:
+                pass
 
     def check_rs_button_click(self):
         """ Кнопка запуска цикла проверки радиостанции
@@ -551,7 +556,8 @@ class UiMainWindow(QMainWindow):
                 if item != '':
                     col += step
                     continue
-            except Exception: pass
+            except Exception:
+                pass
 
             cell_info = QtWidgets.QTableWidgetItem(str(param['value']).replace('.', ','))
             if not param['is_correct']:
@@ -691,39 +697,9 @@ class UiMainWindow(QMainWindow):
 
     def show_info(self):
         """ Меню справка - о программе """
-        QMessageBox.information(self, 'О программе',
-    f"""v {VERSION}
-
-    Автомотизированное проведение  технического
-    обслуживания  с  использованием установки для
-    измерения    параметров   радиостанций    К2-82
-
-    -------------------------------------------------------------------------------
-
-    Для запуска  цикла проверки  радиостанции необходимо:
-        - Деактивировать все кнопки на приборе кроме УСТ и ДУ
-        - Нажать  "Проверка  параметров"
-        - Следовать дальнейшим инструкциям
-
-
-    Для  ускорения   цикла   проверки   активировать  пропуск
-    девиации.  Для  быстрой  усановки  частоты с  компьютера
-    ввести частоту в поле f:
-    (например   151825   151.825   151,825)    и   нажать   кнопку
-    "Установить    частоту".    Для   корректной   установки,   на
-    приборе   должно  быть  активно   меню   редактирования
-    сигнала    (либо     включены   кнопки   УСТ    и    ДУ,    либо
-    отключены все кнопки кроме ДУ)
-
-    Все кнопки в программе соответствуют кнопкам К2-82.
-
-    -------------------------------------------------------------------------------
-
-
-                                                        Разработчик Голов Д.Е. ©
-                                                        ООО  "Телеком - Сервис"
-                                                        2020-2021 г.
-    """)
+        with open('about.txt', mode='r') as file:
+            about = file.read()
+        QMessageBox.information(self, 'О программе', about.format(VERSION))
 
     def save_settings(self):
         """ Сохранение настроек в файл конфигураций config.ini """
@@ -753,7 +729,7 @@ class UiMainWindow(QMainWindow):
         self.k2_functional.set_com_value(settings.value('com_k2', '', type=str))
         self.rs_functional.set_com_value(settings.value('com_rs', '', type=str))
 
-    def closeEvent(self, event = None):
+    def closeEvent(self, event=None):
         """ Функция закрытия приложения (при закрытии сохраняются настройки) """
         self.save_settings()
         if event:
