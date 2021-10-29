@@ -697,9 +697,12 @@ class UiMainWindow(QMainWindow):
 
     def show_info(self):
         """ Меню справка - о программе """
-        with open('about.txt', mode='r') as file:
-            about = file.read()
-        QMessageBox.information(self, 'О программе', about.format(VERSION))
+        try:
+            with open('gui/about.txt', 'r', encoding='utf-8') as file:
+                about = file.read()
+            QMessageBox.information(self, 'О программе', about.format(VERSION))
+        except Exception as ex:
+            event_log.error(ex)
 
     def save_settings(self):
         """ Сохранение настроек в файл конфигураций config.ini """
