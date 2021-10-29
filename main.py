@@ -3,13 +3,13 @@
 import sys
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import QApplication
-from gui.k2_interface import UiMainWindow
+from gui import UiMainWindow
 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     icon = QtGui.QIcon()
-    icon.addPixmap(QtGui.QPixmap("gui/images\\icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+    icon.addPixmap(QtGui.QPixmap("images\\icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
     app.setWindowIcon(icon)
 
     win = UiMainWindow()

@@ -24,5 +24,5 @@ setup(
     version=VERSION,
     description="k2_82",
     options={"build_exe": build_exe_options},
-    executables=[Executable("k2_82.py", base='Win32GUI')]
+    executables=[Executable("main.py", base='Win32GUI')]
 )

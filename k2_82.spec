@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['k2_82.py'],
+a = Analysis(['main.py'],
              pathex=['C:\\Python_projects\\k_2_82'],
              binaries=[],
              datas=[],
