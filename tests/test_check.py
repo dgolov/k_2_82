@@ -97,6 +97,26 @@ class TestCheck(unittest.TestCase):
         self.assertEqual(self.check.i['value'], 70)
         self.assertTrue(self.check.i['is_correct'])
 
+    @input_check_tx_functions
+    def test_check_transmitter_radiy(self):
+        self.k2.model = 'Радий'
+
+        self.check.check_transmitter()
+
+        self.assertEqual(self.check.high_p['value'], '-')
+        self.assertTrue(self.check.high_p['is_correct'])
+
+    @input_check_tx_functions
+    def test_check_transmitter_rn(self):
+        self.k2.model = 'РН 311М'
+
+        self.check.check_transmitter()
+
+        self.assertEqual(self.check.p['value'], '-')
+        self.assertTrue(self.check.p['is_correct'])
+        self.assertEqual(self.check.i['value'], 110)
+        self.assertTrue(self.check.i['is_correct'])
+
     @input_check_class
     def test_access_check_normal(self):
         self.k2.com.readlines = Mock(return_value=['f=152.6489 МГц '.encode('cp866')])
