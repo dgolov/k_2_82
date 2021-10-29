@@ -11,12 +11,11 @@ import sys, os, xlwt, PyQt5
 
 includes = ["xlwt",]
 
-excludes = ['logging', 'unittest', 'email', 'html', 'http', 'urllib',
-            'xml', 'pydoc', 'doctest', 'argparse', 'datetime', 'zipfile',
-            'subprocess', 'pickle', 'threading', 'locale', 'calendar', 'functools',
-            'weakref', 'tokenize', 'base64', 'gettext', 'heapq', 're',
-            'bz2', 'fnmatch', 'getopt', 'reprlib', 'string', 'stringprep',
-            'quopri', 'copy', 'imp']
+excludes = [
+    'logging', 'unittest', 'email', 'html', 'http', 'urllib', 'xml', 'pydoc', 'doctest', 'argparse', 'datetime',
+    'zipfile', 'subprocess', 'pickle', 'threading', 'locale', 'calendar', 'functools', 'weakref', 'tokenize', 'base64',
+    'gettext', 'heapq', 're', 'bz2', 'fnmatch', 'getopt', 'reprlib', 'string', 'stringprep', 'quopri', 'copy', 'imp'
+]
 
 build_exe_options = {"packages": includes}
 

@@ -1,5 +1,8 @@
 # Модуль с алгоритмами функционалов радиостанции и приставки К2-82
-import re, serial, time, xlwt
+import re
+import serial
+import time
+import xlwt
 from settings import CODES
 
 
@@ -10,23 +13,22 @@ class ImportToExcel:
     """
 
     def __init__(self):
-        self.cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
+        self.cols = ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L')
         self.book = xlwt.Workbook(encoding='utf8')
         self.sheet = self.book.add_sheet('Sheet')
         self.line = 0
 
-    def write_book(self, *args):
+    def write_book(self, *args) -> None:
         """ Запись результатов проверки в Excel документ
             :param args - упакованные результаты проверки радиостанции
         """
         row = self.sheet.row(self.line)
 
         for index, col in enumerate(self.cols):
-            value = args[index]
-            row.write(index, value)
+            row.write(index, args[index])
         self.line += 1
 
-    def save_book(self, name):
+    def save_book(self, name: str) -> None:
         """ Сохранение Excel документа
             :param name - имя сохраняемого Excel файла
         """
@@ -40,7 +42,7 @@ class Functional:
         self.port = None
         self.com = None
 
-    def connect_com_port(self, port):
+    def connect_com_port(self, port: int) -> bool:
         """ Соединение с COM портом
             :param port - название ком порта
         """
@@ -53,7 +55,7 @@ class Functional:
         except serial.SerialException:
             return False
 
-    def set_com_value(self, port):
+    def set_com_value(self, port: int) -> None:
         """ :param port:
         """
         self.port = port
@@ -68,7 +70,7 @@ class RSFunctional(Functional):
         super(RSFunctional, self).__init__()
         self._sn_pattern = r'672[a-zA-Z0-9]{7}'
 
-    def get_serial(self):
+    def get_serial(self) -> str:
         """ Получение серийного номера с радиостанции
         """
         self.com.write(b'\xf2\x23\x01\xe9')  # ASCII: 'т#<SON>й'
@@ -104,7 +106,7 @@ class K2Functional(Functional):
         self.continue_thread = True  # Продолжать выполнение потока. Останавливается при всплывающих сообщениях
         self.random_values = False  # Рандомные значения
 
-    def send_code(self, code, command=None):
+    def send_code(self, code, command=None) -> str:
         """ Отправка команды на COM порт
             :param code - ASCII код отправляемый на прибор
             :param command - указание нужно ли отображать на дисплее что команда отправлена
@@ -112,13 +114,13 @@ class K2Functional(Functional):
         try:
             self.com.write(code)
             if command:
-                return "Команда '{}' отправлена на {}".format(command, self.com.port)
+                return f"Команда '{command}' отправлена на {self.com.port}"
         except serial.SerialException:
             return 'Не удается соедениться с ' + self.com.port
         except (NameError, AttributeError):
-            return 'Ошибка {}: Нет подключения'.format(self.port)
+            return f'Ошибка {self.port}: Нет подключения'
 
-    def input_frequency(self, f):
+    def input_frequency(self, f: str) -> str:
         """ Установка заданной частоты на К2-82
             :param f - частота
         """
@@ -142,9 +144,9 @@ class K2Functional(Functional):
             return 'Не удается соедениться с ' + self.com.port
 
         self.send_code(CODES['V/MHz'])
-        return 'Частота {} установлена на приборе'.format(f)
+        return f'Частота {f} установлена на приборе'
 
-    def numbers_entry(self, *args):
+    def numbers_entry(self, *args) -> None:
         """ Отправка списка числовых значений на прибор (цифровая клавиатура на К2-82)
             :param args - произвольное колличество чисел которые вводим на К2-82
         """

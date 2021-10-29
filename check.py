@@ -97,7 +97,7 @@ class Check(QObject):
         self.rs_functional = rs_functional
         self.param_list = []
 
-    def get_error_message(self, log_msg, msg):
+    def get_error_message(self, log_msg, msg: str) -> None:
         """ Выводит сообщение о ошибки на информационный дисплей и в файл логов
             :param log_msg: - сообщение для файла логов
             :param msg: - сообщение для информационного дисплея
@@ -109,7 +109,7 @@ class Check(QObject):
             "params": None
         })
 
-    def get_check_status(self):
+    def get_check_status(self) -> None:
         """ Получение прогрусса проверки в процентах
             И проверка на нажатие кнопки отмены
         """
@@ -125,7 +125,7 @@ class Check(QObject):
             self.k2_functional.cancel = False
             raise CancelError
 
-    def pause(self, seconds):
+    def pause(self, seconds) -> None:
         """ Пауза проверки для корректной загрузки параметров на приборе и их считывания
             Обращение к функции получения прогресса проверки в процентах и проверки на отмену
             :param seconds - время паузы в секундах
@@ -141,7 +141,7 @@ class Check(QObject):
             time.sleep(seconds)
         self.get_check_status()
 
-    def reset_k2(self):
+    def reset_k2(self) -> None:
         """ Сбрасывает настройки К2-82 при отмене или ошибке проверки
             Методом нажатия ОТКЛ и УСТ возвращает прибор в исходное состояние
             Закрывает COM порт
@@ -154,7 +154,7 @@ class Check(QObject):
             self.k2_functional.send_code(CODES['УСТ'])
         self.k2_functional.com.close()
 
-    def extend_data_list(self, data_list):
+    def extend_data_list(self, data_list: list) -> None:
         """ Добавление новых параметров в список входных данных с прибора
             :param data_list: - список данных
         """
@@ -162,7 +162,7 @@ class Check(QObject):
             data_list.append(line.decode('cp866'))
 
     @pyqtSlot()
-    def run(self, *args, **kwargs):
+    def run(self, *args, **kwargs) -> None:
         """ Запуск процесса проверки в отдельном потоке"""
         # Засекаем время начала проверки проверки
         started_time = time.time()
@@ -208,13 +208,14 @@ class Check(QObject):
             self.serial_number['value'] = self.get_serial_number()
 
             # Сигнал об успешном завершениии. Передает параметры РС после проверки
-            self.check_status.emit({"message": 'Проверка завершена успешно',
-                                    "params": [
-                                        self.serial_number, self.p, self.high_p, self.dev, self.kg, self.chm_u,
-                                        self.chm_max, self.selectivity_rc, self.out_pow, self.out_pow_vt,
-                                        self.selectivity, self.out_kg, self.noise_reduction, self.i, self.i_rc,
-                                        self.discharge_alarm, self.charge, self.manipulator,
-                                    ]})
+            self.check_status.emit({
+                "message": 'Проверка завершена успешно',
+                "params": [
+                    self.serial_number, self.p, self.high_p, self.dev, self.kg, self.chm_u, self.chm_max,
+                    self.selectivity_rc, self.out_pow, self.out_pow_vt, self.selectivity, self.out_kg,
+                    self.noise_reduction, self.i, self.i_rc, self.discharge_alarm, self.charge, self.manipulator,
+                ]
+            })
         except AttributeError as exc:
             self.get_error_message(log_msg=exc, msg='Не удается соедениться с {}'.format(self.k2_functional.port))
         except NoRSError as no_rs:
@@ -226,7 +227,7 @@ class Check(QObject):
         except Exception as exc:
             self.get_error_message(log_msg=exc, msg="Неизвестная ошибка, дайте пизды производителю")
 
-    def check_transmitter(self):
+    def check_transmitter(self) -> None:
         """ Проверка передатчика"""
         if self.k2_functional.model == 'Motorola GP340' or self.k2_functional.model == 'Comrade':
             self.chm_u['value'] = 9.5

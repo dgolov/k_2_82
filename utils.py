@@ -1,5 +1,6 @@
 # Утилиты и полезности к основной программе
-import math, tkinter
+import math
+import tkinter
 
 
 def print_inscription(window, text, x, y, width, height, text_color = '#000000'):
@@ -30,7 +31,6 @@ class DecibelCalc:
         self.convert_button_db = tkinter.Button(self.calc, text='Конвертировать', command=self.db_to_tm)
         self.convert_button_tm = tkinter.Button(self.calc, text='Конвертировать', command=self.tm_to_db)
 
-
     def tm_to_db(self):
         """ Конвертация: Разы в Дб """
         data = self.get_tm.get()
@@ -46,7 +46,6 @@ class DecibelCalc:
             self.get_db.insert(0, str(db))
         except ValueError:
             pass
-
 
     def db_to_tm(self):
         """ Конвертация: Дб в разы """
@@ -64,7 +63,6 @@ class DecibelCalc:
             self.get_tm.insert(0, str(tm))
         except ValueError:
             pass
-
 
     def show(self):
         """ Отображение дополнительного окна с калькулятором """

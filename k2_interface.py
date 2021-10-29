@@ -15,7 +15,6 @@ from utils import DecibelCalc
 from settings import *
 
 
-
 class UiMainWindow(QMainWindow):
     """ Окно пользовательского интерфейса программы """
     def __init__(self):
@@ -434,13 +433,11 @@ class UiMainWindow(QMainWindow):
             csv.writer(stream, delimiter='\t').writerows(table)
             QtWidgets.qApp.clipboard().setText(stream.getvalue())
 
-
     def clear_table(self):
         """ Очистка таблицы """
         self.result_table.clear()
         self.row = 0
         self.init_table()
-
 
     def init_menu(self):
         """ Инициализация меню """
@@ -489,7 +486,6 @@ class UiMainWindow(QMainWindow):
         help_menu.addAction(help_action)
         help_menu.addAction(user_manual_action)
 
-
     def click_button(self, text, code):
         """ Функция нажатия кнопки
             Осуществляет отправку сигнала на COM порт и вывод текста на экран приложения
@@ -504,7 +500,6 @@ class UiMainWindow(QMainWindow):
             try:
                 self.k2_functional.com.close()
             except AttributeError: pass
-
 
     def check_rs_button_click(self):
         """ Кнопка запуска цикла проверки радиостанции
@@ -527,7 +522,6 @@ class UiMainWindow(QMainWindow):
         except Exception as exc:
             print(exc)
             self.check_rs_button.setEnabled(True)
-
 
     def get_check_result(self, check_result):
         """ Принимает сигнал с результатами из потока
@@ -574,7 +568,6 @@ class UiMainWindow(QMainWindow):
         self.thread = None
         self.check_rs_button.setEnabled(True)
 
-
     def message_box(self, message):
         """ Сигнал из потока запускающий message box с инструкциями для пользователя
             Пока пользователь не отреагирует на сообщение проверка продолжаться не будет
@@ -585,7 +578,6 @@ class UiMainWindow(QMainWindow):
         QMessageBox.information(self, message[0], message[1])
         self.k2_functional.continue_thread = True
 
-
     def button_cancel_click(self):
         """ Кнопка отмены цикла проверки """
         if self.k2_functional.check:
@@ -593,12 +585,10 @@ class UiMainWindow(QMainWindow):
             self.thread.terminate()
             self.check_rs_button.setEnabled(True)
 
-
     def button_pass_click(self):
         """ Кнопка отмены цикла проверки """
         if self.k2_functional.check:
             self.k2_functional.next = True
-
 
     def get_frequency_button_click(self, event=None):
         """ Кнопка установки частоты на К2-82
@@ -619,7 +609,6 @@ class UiMainWindow(QMainWindow):
             event_log.error('COM port connecting error')
             self.screen_text.setText('Не удается соедениться с {}'.format(self.k2_functional.port))
 
-
     def tx_flag_click(self, state):
         """ Флаг статуса проверки передатчика
             :param state - статус флажка проверки передатчика
@@ -628,7 +617,6 @@ class UiMainWindow(QMainWindow):
             self.k2_functional.check_tx = True
         else:
             self.k2_functional.check_tx = False
-
 
     def deviation_flag_click(self, state):
         """ Флаг пропуска девиации
@@ -639,7 +627,6 @@ class UiMainWindow(QMainWindow):
         else:
             self.k2_functional.check_deviation = True
 
-
     def rx_flag_click(self, state):
         """ Флаг статуса проверки приёмника
             :param state - статус флажка проверки приёмника
@@ -648,7 +635,6 @@ class UiMainWindow(QMainWindow):
             self.k2_functional.check_rx = True
         else:
             self.k2_functional.check_rx = False
-
 
     def choice_com_port(self, com_port, device):
         """ Получение информации о состоянии подключения COM порта
@@ -696,7 +682,6 @@ class UiMainWindow(QMainWindow):
         self.statusBar().showMessage('COM порт К2-82: {}    |   COM порт радиостанции: {}'.format(
             self.k2_functional.port, self.rs_functional.port))
 
-
     def save_file(self):
         """ Сохранение параметров в файл Excel """
         pass
@@ -704,11 +689,10 @@ class UiMainWindow(QMainWindow):
         # if name != '':
         #     functional.excel_book.save_book(name)
 
-
     def show_info(self):
         """ Меню справка - о программе """
         QMessageBox.information(self, 'О программе',
-    '''v {}
+    f"""v {VERSION}
 
     Автомотизированное проведение  технического
     обслуживания  с  использованием установки для
@@ -739,9 +723,7 @@ class UiMainWindow(QMainWindow):
                                                         Разработчик Голов Д.Е. ©
                                                         ООО  "Телеком - Сервис"
                                                         2020-2021 г.
-    '''.format(VERSION)
-    )
-
+    """)
 
     def save_settings(self):
         """ Сохранение настроек в файл конфигураций config.ini """
@@ -757,7 +739,6 @@ class UiMainWindow(QMainWindow):
         settings.setValue('com_k2', self.k2_functional.port)
         settings.setValue('com_rs', self.rs_functional.port)
 
-
     def load_settings(self):
         """ Загрузка настроек из файла конфигураций config.ini """
         settings = QSettings(CONFIG_FILE_NAME, QSettings.IniFormat)
@@ -771,7 +752,6 @@ class UiMainWindow(QMainWindow):
 
         self.k2_functional.set_com_value(settings.value('com_k2', '', type=str))
         self.rs_functional.set_com_value(settings.value('com_rs', '', type=str))
-
 
     def closeEvent(self, event = None):
         """ Функция закрытия приложения (при закрытии сохраняются настройки) """
