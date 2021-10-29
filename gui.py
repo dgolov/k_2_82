@@ -554,6 +554,7 @@ class UiMainWindow(QMainWindow):
             try:
                 item = self.result_table.item(self.row, col).text()
                 if item != '':
+                    # Если ячейка содержит значение, то не заменяем его и пропускаем
                     col += step
                     continue
             except Exception:
@@ -646,47 +647,37 @@ class UiMainWindow(QMainWindow):
         """ Получение информации о состоянии подключения COM порта
             :param com_port - название COM порта
         """
-        if device == 'К2-82':
-            functional = self.k2_functional
-
-            if com_port == 'COM1':
-                self.k2_com1_action.setChecked(1)
-                self.k2_com2_action.setChecked(0)
-                self.k2_com3_action.setChecked(0)
-            elif com_port == 'COM2':
-                self.k2_com1_action.setChecked(0)
-                self.k2_com2_action.setChecked(1)
-                self.k2_com3_action.setChecked(0)
-            elif com_port == 'COM3':
-                self.k2_com1_action.setChecked(0)
-                self.k2_com2_action.setChecked(0)
-                self.k2_com3_action.setChecked(1)
-        else:
-            functional = self.rs_functional
-
-            if com_port == 'COM1':
-                self.rs_com1_action.setChecked(1)
-                self.rs_com2_action.setChecked(0)
-                self.rs_com3_action.setChecked(0)
-            elif com_port == 'COM2':
-                self.rs_com1_action.setChecked(0)
-                self.rs_com2_action.setChecked(1)
-                self.rs_com3_action.setChecked(0)
-            elif com_port == 'COM3':
-                self.rs_com1_action.setChecked(0)
-                self.rs_com2_action.setChecked(0)
-                self.rs_com3_action.setChecked(1)
+        functional = self.k2_functional if device == 'К2-82' else self.rs_function
+        self.set_com_port_checked(com_port=com_port)
 
         functional.port = com_port
         is_connect = functional.connect_com_port(com_port)
         if is_connect:
-            text = 'Соединение с {} установлено'.format(com_port)
-            self.statusBar().showMessage('COM: {}'.format(com_port))
+            text = f'Соединение с {com_port} установлено'
+            self.statusBar().showMessage(f'COM: {com_port}')
         else:
-            text = 'Не удается соедениться с {}'.format(com_port)
+            text = f'Не удается соедениться с {com_port}'
         self.screen_text.setText(text)
-        self.statusBar().showMessage('COM порт К2-82: {}    |   COM порт радиостанции: {}'.format(
-            self.k2_functional.port, self.rs_functional.port))
+        self.statusBar().showMessage(
+            f'COM порт К2-82: {self.k2_functional.port}    |   COM порт радиостанции: {self.rs_functional.port}'
+        )
+
+    def set_com_port_checked(self, com_port):
+        """ Установка COM порта в чекбокс в настройках
+            :param com_port - название COM порта
+        """
+        if com_port == 'COM1':
+            self.k2_com1_action.setChecked(1)
+            self.k2_com2_action.setChecked(0)
+            self.k2_com3_action.setChecked(0)
+        elif com_port == 'COM2':
+            self.k2_com1_action.setChecked(0)
+            self.k2_com2_action.setChecked(1)
+            self.k2_com3_action.setChecked(0)
+        elif com_port == 'COM3':
+            self.k2_com1_action.setChecked(0)
+            self.k2_com2_action.setChecked(0)
+            self.k2_com3_action.setChecked(1)
 
     def save_file(self):
         """ Сохранение параметров в файл Excel """
@@ -697,12 +688,7 @@ class UiMainWindow(QMainWindow):
 
     def show_info(self):
         """ Меню справка - о программе """
-        try:
-            with open('gui/about.txt', 'r', encoding='utf-8') as file:
-                about = file.read()
-            QMessageBox.information(self, 'О программе', about.format(VERSION))
-        except Exception as ex:
-            event_log.error(ex)
+        QMessageBox.information(self, 'О программе', ABOUT)
 
     def save_settings(self):
         """ Сохранение настроек в файл конфигураций config.ini """
