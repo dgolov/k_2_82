@@ -52,7 +52,7 @@ Python 3, Pyseryal, PyQt 5, unittest , xlwt
      
 ## Запуск программы
 
-     python k2_82.py
+     python main.py
      
 ## Сборка программы в exe файл
 
