@@ -56,4 +56,4 @@ Python 3, Pyseryal, PyQt 5, unittest , xlwt
      
 ## Сборка программы в exe файл
 
-     python setup.py
+     python setup.py build
